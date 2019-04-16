@@ -11,13 +11,6 @@
 # Name:     adjustLWE.ps1
 # Authors:  James Griffith
 # Version:  1.2.1
-# History:  05-18-17 - Initial release
-#			05-23-17 - add check and logic for EST_Licensing_Window
-#			05-24-17 - add more node checking logic for license windows
-#			09-27-17 - update functions to include logging and debug switch
-#					 - update file and directory checks to work with log and debug
-#					 - update SQL query to only pull HLS content (SD/HD)
-#			10-02-17 - update logic 
 #
 ############################################################################################
 
