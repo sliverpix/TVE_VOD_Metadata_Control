@@ -3,9 +3,17 @@ Version control for TVE's VOD ingestion Metadata and related libraries
 
 
 # UpdatePrices_Promo_Purchase
-__Description__
+__Description__:
 
-__History__
+Authors: | James Griffith
+-------- | ---------------
+__Version:__ | __1.4__
+
+This scrips downloads pulls ADI files out of the DB for Alt_Codes provided in UpdatePrices_Promo_Purchases.txt file and updates the SD/HD prices to prices provided in the file. While we are at it, we will check and set the PURCHASE flag, License_Window_Start/END
+ and the EST_License_Window_Start/END dates.
+ 
+
+__History__:
 * 02-14-17 - Initial release
 * 11-02-17 - ADD logging feature
 	* ADD debug feature
@@ -20,10 +28,29 @@ __History__
   
   
 # UpdateSeasonEpisodeInformation
-__Description__
-Nothing here yet
+__Description__:
 
-__History:__
+ Authors: | James Griffith
+ -------- | ---------------
+ __Version:__ | __1.10.2__
+ 
+ This scrips downloads / pulls ADI files out of the DB for correction
+ to SEASON, Season_ID, EPISODE_NUM and EPISODE_ID. ONLY HLS title
+ types are checked. If the element/nodes are not present in the original XML
+ we will build them and populate them. XML files are saved to ORIGINAL
+ and MODIFIED folders to maintain the integrity of our library. We
+ target HLS formats in both HD and SD and set values based on TITLE
+ or Title_Brief value. If these dont exist we break out, log it and
+ and notify the user.
+
+ Logging function has been added to help track processing, error,
+ and logic checks.
+
+ Summary Report has been added to let the user know what was done. This
+ saves on memeory and outputs minimal test to the screen
+
+
+__History:__:
 * 10-30-17	- Initial release
 * 11-03-17	- include trailing \s in type 5 regex. hopefully reduce	number of false positive matches.
 	* enabled "loose" type extrapolation (... scary ...)
