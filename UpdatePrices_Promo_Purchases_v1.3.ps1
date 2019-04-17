@@ -1,4 +1,4 @@
-﻿####################################################################
+####################################################################
 # This scrips downloads pulls ADI files out of the DB for
 # Alt_Codes provided in UpdatePrices_Promo_Purchases.txt file
 # and updates the SD/HD prices to prices provided in the file
@@ -10,16 +10,6 @@
 # Name:     UpdatePrices_Promo_Purchases.ps1
 # Authors:  Elena Raines and James Griffith
 # Version:  1.3
-# History:  02-14-17 - 	Initial release
-#			11-02-17 - 	ADD logging feature
-#						ADD debug feature
-#						ADD IsNull checking funtion
-#						UPDATE logic to check the PURCHASE flag and EST_License_Window_Start/_END dates
-#			11-30-17 -	move HD/SD notification from DEBUG to production mode, log it and add to summary report
-#           10-10-18 -  Reorganize code for debugging and testing
-#                    -  Fix XML node adding bug when EST_LICENSE_WINDOW_START/_END is missing.
-#                    -  update Write-Log() to latest function version from psmodTVEVODUtils.psm1
-#
 ####################################################################
 
 # Write-Debug -- this might work
