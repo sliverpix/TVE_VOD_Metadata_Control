@@ -16,7 +16,7 @@
 #
 # Name:     updateSeasonEpisodeInformation.ps1
 # Authors:  James Griffith
-# Version:  1.10.2
+# Version:  1.10.3
 #
 ####################################################################
 #
@@ -811,6 +811,7 @@ Foreach ($line in $contents){
 		$app_EpisodeName = ($class_title.App_Data | Where-Object {$_.Name -eq "Episode_Name"})
         $app_Category = ($class_title.App_Data | Where-Object {$_.Name -eq "Category"})
         $app_CategoryDisplay = ($class_title.App_Data | Where-Object {$_.Name -eq "Category_Display"})
+		$app_RatingMPAA = ($class_title.App_Data | Where-Object {$_.Name -eq "Rating_MPAA"})
 		
 
 		### START LOGIC ###
@@ -1032,6 +1033,40 @@ Foreach ($line in $contents){
 			Write-Host ("Fixed. Check log.") -ForegroundColor Green
 		}
 		
+		# Rating_MPAA NODE
+		if (!($app_RatingMPAA)){
+			$e_message = "Rating_MPAA Node is MISSING!! Checking for mispelled node..."
+			$numWarn++
+			Write-Log $xml_filename "w" "$($e_message)"
+			Write-Host ($e_message) -ForegroundColor Yellow
+			
+			# check for mispelled noden name
+			$mispelledMPAA = $class_title.App_Data | Where-Object {$_.Name -eq "MPAA_Rating"}
+			if ($mispelledMPAA.NAME){
+				# mispelling found
+				Write-Log $xml_filename "w" "Found mispelled Node: $($mispelledMPAA.Name) with value: $($mispelledMPAA.value)"
+				Write-Debug "node name $($mispelledMPAA.Name) changed to..."
+				$mispelledMPAA.Name = "Rating_MPAA"
+				Write-Debug "node name $($mispelledMPAA.Name)"
+				$e_message = "Changed element name 'MPAA_Rating' to '$($mispelledMPAA.NAME)'"
+				Write-Log $xml_filename "w" "$e_message"
+				
+			} else {
+				# node is missing so build our node and set an empty value for now.
+				$app_elem = $content.CreateElement("App_Data")
+				$app_elem.SetAttribute("App","$($AMS_product)")
+				$app_elem.SetAttribute("Name","Rating_MPAA")
+				$app_elem.SetAttribute("Value","")	
+				$app_RatingMPAA = $content.ADI.Asset.Metadata.AppendChild($app_elem)
+				
+				$e_message = "No mispelling found. Node Built. Fixed!"
+				Write-Log $xml_filename "w" "$($e_message)"
+				Write-Host ($e_message) -ForegroundColor Green
+			}
+			
+		} else {
+			Write-Debug "Rating_MPAA node Good"
+		}
 				
 		#### NODE Check Stop #####
 		
