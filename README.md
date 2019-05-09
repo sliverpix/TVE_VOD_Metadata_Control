@@ -101,3 +101,4 @@ __History:__:
 	* (1.10) Added DEBUG logic for easier targeting for $work_dir and $input_txt_file
 * 12-13-2018	- (1.10.1) removed CLEANED TITLE string from file name. Thus it should be alt_code_sd/hd.xml
 * 04-16-2019	- (1.10.2) BUG FIX:- Correct bug on line 645 "$app_elem.SetAttribute("Name","Epipode_Name") to correct the mispelling of EPISODE_NAME. This caused a node to be built with the wrong NAME value and thus was not caught when checking for the existance of the EPISODE_NAME node, thus continually appending a mispelled node each time the xml was iterated through.
+* 04-22-2019	- (1.10.3) ADDed node check for MPAA_Rating. Check and build node, check for mispelling of NAME elemental and/or correct it and set VALUE element.
