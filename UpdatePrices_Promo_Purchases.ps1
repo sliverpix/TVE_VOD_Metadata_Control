@@ -9,7 +9,7 @@
 #
 # Name:     UpdatePrices_Promo_Purchases.ps1
 # Authors:  Elena Raines and James Griffith
-# Version:  1.4
+# Version:  1.4.1
 # History:  02-14-17 - 	Initial release
 #			11-02-17 - 	ADD logging feature
 #						ADD debug feature
