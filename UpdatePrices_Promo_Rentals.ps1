@@ -6,11 +6,15 @@
 #
 # Name:     UpdatePrices_Promo_Rentals.ps1
 # Authors:  Elena Raines
-# Version:  1.1
+# Version:  2.0
 # History:  02-14-17 - Initial release
 #			02-07-18 - [Griffith] add processing functions from my
 #						library to keep better track of of this
 #						scripts work
+#			04-26-19 -	Rewriting code base... simpilier ways to 
+#						accomplish the same thing. and need to add 
+#						many core functions from the other scripts.
+#						Make this a little less complicated and a little more manageable
 #
 ####################################################################
 
@@ -23,17 +27,35 @@
 # ### set our variables first ### #
 
 # point to our input input file for targeted asset processing
-$input_txt_file = "C:\vodscripts\UpdatePrices_Promo_Rentals.txt"
-$alt_codes = Get-Content $input_txt_file
+Switch ($DebugPreference){
+	"SilentlyContinue"	{	
+							$input_txt_file = "C:\vodscripts\UpdatePrices_Promo_Rentals.txt"
+							$work_directory = "C:\vodscripts\_PromoPrices_Rentals\"
+	}
+	"Continue"			{	$input_txt_file = "C:\vodscripts\testlist.inc"
+							$work_directory = "C:\vodscripts\_PromoPrices_Rentals\_Testing\"
+	
+	}
+	default				{	Write-Host "Debug broke! Input file and work directory not set!" -ForegroundColor RED
+							EXIT;
+	
+	}
+}
 
-$work_directory = "C:\vodscripts\_PromoPrices_Rentals\"
-$originals = $work_directory + (Get-Date).ToString('MMddyyyy’) + "\Originals"
-$modified = $work_directory + (Get-Date).ToString('MMddyyyy’) + "\Mofied" 
-$failure_log_file = $work_directory + (Get-Date).ToString('MMddyyyy’) + "\FailureLogFile.txt"
+# hard code our SD/HD price values
+$sd_price = "2.99"
+$hd_price = "3.99"
+
+# set our variables
+$alt_codes = Get-Content $input_txt_file
+$daily_directory = (Get-Date).ToString('MMddyyyy')
+$originals = $work_directory + $daily_directory + "\Originals"
+$modified = $work_directory + $daily_directory + "\Modified"
+$reviewD = $work_directory + $daily_directory + "\Review"
 
 # set the log file
 $logfile = "logfile.txt"
-$tolog = $work_dir + $daily_directory + "\" + $logfile
+$tolog = $work_directory + $daily_directory + "\" + $logfile
 
 $numRuns = [int] 0
 $erro = [int] 0
@@ -52,19 +74,18 @@ If (!(Test-Path -Path $modified ))
     New-Item -Path $modified -ItemType directory
 }
 
-If (Test-Path $failure_log_file)
+If (!(Test-Path -Path $reviewD ))
 {
-	Remove-Item $failure_log_file
+    New-Item -Path $reviewD -ItemType directory
 }
+
 
 If(!(Test-Path -Path $tolog)){
     New-Item -Path $tolog -ItemType File
     Write-Debug ("New log file created!")
 }
 
-# hard code our SD/HD price values
-$sd_price = "2.99"
-$hd_price = "3.99"
+
 
 # ## FUNCTIONS ## #
 function IsNull($objectToCheck) {
@@ -91,9 +112,19 @@ function IsNull($objectToCheck) {
 # log-o-funky
 function Write-Log {
     # write to our log file
-    param ($filename, $message)
+	# Log level can only be I-INFO, W-WARN or E-ERROR... fail on anything else
+    param ($filename, $loglevel, $message)
+
+	switch($loglevel){
+		"I" {$ll="INFO"; break;}
+		"W" {$ll="WARN"; break;}
+		"E" {$ll="ERROR"; break;}
+		default {Write-Debug("Fatal-error in WRITE-LOG: Log Level flag can only be I, W, or E!!"); break;}
+	}
+	
 	$datetime = (Get-Date).ToString('MM-dd-yyyy hh:mm:ss')
-    Add-Content $tolog ($datetime + "::" + $filename + " | " + $message)
+    Add-Content $tolog ("$($datetime) :: $($filename) [$($ll)] $($message)")
+
 }
 
 # summarry report of script/process
@@ -137,9 +168,9 @@ Foreach ($alt_code in $alt_codes)
       
     $SqlQuery = "SELECT strscreenformat, xmlContent
     FROM [ProvisioningWorkFlow].[Pro].[tAssetInputXML]
-    where strContentItemID = '$alt_code'"
+    where strContentItemID = '$alt_code' and strscreenformat like '%HLS_%'"
 
-    
+    # connect to our DB
     $SqlConnection = New-Object System.Data.SqlClient.SqlConnection
     $SqlConnection.ConnectionString = "Server = $SQLServer; Database = $SQLDBName; Integrated Security = True"
  
@@ -153,220 +184,267 @@ Foreach ($alt_code in $alt_codes)
  
     $DataSet = New-Object System.Data.DataSet
     [void]($SqlAdapter.Fill($DataSet))
+	
+	# tell us what we are procesing
+	Write-Host("")
+	Write-Host("$($alt_code) :: Processing ...")
+
+    $numRows = $Dataset.Tables.Rows | Measure-Object
+
+    # if no rows returned from QUERY move on to the next ASSET ID
+    if($numRows.Count -eq 0)
+    {        
+		$numError++
+        $e_message = "No Match found in tAssestInputXML table!"
+		Write-Host("$($alt_code) :: [ERROR] $($e_message) ... skipping") -ForegroundColor Red
+        Write-Log -filename $alt_code -loglevel "E" -message $e_message
+        Break;
+    }else{
+        $numinfo++
+        $e_message = "$($numRows.Count) ROWS returned for $($alt_code)"
+        Write-Debug $e_message
+        Write-Log -filename $alt_code -loglevel "I" -message $e_message
+    }
+	
+	# setting MSVFOUND flag to indicate if we actually found the ASSETID in MSV
+	$msvFound = 0
+	
+	# isReview flag to tell us when to save xml to \Review\ directory
+	$isReview = 0
+	
    
     Foreach ($value in $DataSet.Tables[0])
     {
-        
-        ######################################################################################################################################
-        # HD Values
-        ######################################################################################################################################
-        If ($value.strscreenformat -like "*HLS_SM_HD*")
-        {
-            $hd_variant = 1
-            [void]($content = [xml]($value.xmlContent))
-            $content.Save($originals + "\" + $alt_code + "_" + $value.strscreenFormat + ".xml")
-            [void]($type = ($content.ADI.Asset.Metadata.App_Data | Where-Object {$_.Name.ToLower() -eq "title"}).App)
+		# save our ORIGINAL metadata
+		[void]($content = [xml]($value.xmlContent))
+		$xml_filename = ($alt_code + "_" + $value.strscreenFormat + ".xml")
 
+		# setup our HD/SD dependant values/variables
+		Switch -wildcard ($value.strScreenFormat) {
+			"*HLS_HD*" { 
+						Write-Host("... HLS_HD meta")
+						Write-Log $xml_filename "I" "Found HD metadata. Processing ..."
+						$msvFound = 1
+						$hd_variant = 1
+						$newRentalPrice = $hd_price
 
+						BREAK;
+			}
+			"*HLS_SD*" {
+						Write-Host("... HLS_SD meta")
+						Write-Log $xml_filename "I" "Found SD metadata. Processing ..."
+						$msvFound = 1
+						$sd_variant = 1
+						$newRentalPrice = $sd_price
 
-            If ($content.ADI.Asset.Metadata.App_Data | Where-Object {$_.Name.ToLower() -eq "suggested_price"})
-            {
-                $node = ($content.ADI.Asset.Metadata.App_Data | Where-Object {$_.Name.ToLower() -eq "suggested_price"})
-                Foreach ($n in $node)
-                {
-                    [void]($n.ParentNode.RemoveChild($n))
-                }
-            }
-            
-            If ($content.ADI.Asset.Metadata.App_Data | Where-Object {$_.Name.ToLower() -eq "hd_rental_price"})
-            {
-            
-                $node = ($content.ADI.Asset.Metadata.App_Data | Where-Object {$_.Name.ToLower() -eq "hd_rental_price"})
-                Foreach ($n in $node)
-                {
-                    [void]($n.ParentNode.RemoveChild($n))
-                }
-            }
+						BREAK;
+			}
+			default {
+						Write-Log $xml_filename "E" "No XML meta was found. Is this it he right Asset ID?"
+						Write-Host("NO XML META FOUND!") -ForegroundColor Red
+						BREAK;
+			}
+		}
+		
+		# catch Asset Id duplication in our input file.
+		# if we already have the original filename - break out
+		# otherwise lets save it and coninue on.
+		# $content.Save($original + "\" + $xml_filename)
+		
+        $orgcheck = gci $originals -Name -File
 
-            
-            If (($content.ADI.Asset.Metadata.App_Data | Where-Object {$_.Name.ToLower() -eq "rental_price"}))
-            {
-            
-                $node = ($content.ADI.Asset.Metadata.App_Data | Where-Object {$_.Name.ToLower() -eq "rental_price"})
-                Foreach ($n in $node)
-                {
-                    [void]($n.ParentNode.RemoveChild($n))
-                }
-            }
-
-            
-            If ($content.ADI.Asset.Metadata.App_Data | Where-Object {($_.Name.ToLower() -eq "msv_offer") -and ($_.Value.ToLower() -like "*rent*")})
-            {
-   
-                $old_offer = ($content.ADI.Asset.Metadata.App_Data | Where-Object {($_.Name.ToLower() -eq "msv_offer") -and ($_.Value.ToLower() -like "*rent*")}).Value.Split("|")
-                $days = $old_offer[1]
-                $hours = $old_offer[2]
-
-                $msv_offer = "Extended Rent|" + $days + "|" + $hours + "|`$3.99"
-                [void](($content.ADI.Asset.Metadata.App_Data | Where-Object {($_.Name.ToLower() -eq "msv_offer") -and ($_.Value.ToLower() -like "*rent*")}).Value = $msv_offer)
-
-
-            }
-
-            If (($content.ADI.Asset.Metadata.App_Data | Where-Object {$_.Name.ToLower() -eq "suggested_price"}).Value )
-            { 
-                ($content.ADI.Asset.Metadata.App_Data | Where-Object {$_.Name.ToLower() -eq "suggested_price"}).Value = $hd_price
-            }
-            Else
-            {
-                $new_suggested_price = $content.CreateElement("App_Data")
-                $new_suggested_price.SetAttribute("App",$type)
-                $new_suggested_price.SetAttribute("Name","Suggested_Price")
-                $new_suggested_price.SetAttribute("Value",$hd_price)
-                [void]($content.ADI.Asset.Metadata.AppendChild($new_suggested_price))
-            }
-            
-            If (($content.ADI.Asset.Metadata.App_Data | Where-Object {$_.Name.ToLower() -eq "hd_rental_price"}).Value )
-            { 
-                ($content.ADI.Asset.Metadata.App_Data | Where-Object {$_.Name.ToLower() -eq "hd_rental_price"}).Value = $hd_price
-            }
-            Else
-            {
-                $new_hd_rental_price = $content.CreateElement("App_Data")
-                $new_hd_rental_price.SetAttribute("App",$type)
-                $new_hd_rental_price.SetAttribute("Name","HD_Rental_Price")
-                $new_hd_rental_price.SetAttribute("Value",$hd_price)
-                [void]($content.ADI.Asset.Metadata.AppendChild($new_hd_rental_price))
-            }
-            
-            If (($content.ADI.Asset.Metadata.App_Data | Where-Object {$_.Name.ToLower() -eq "rental_price"}).Value )
-            { 
-                ($content.ADI.Asset.Metadata.App_Data | Where-Object {$_.Name.ToLower() -eq "rental_price"}).Value = $hd_price
-            }
-            Else
-            {
-                $new_rental_price = $content.CreateElement("App_Data")
-                $new_rental_price.SetAttribute("App",$type)
-                $new_rental_price.SetAttribute("Name","Rental_Price")
-                $new_rental_price.SetAttribute("Value",$hd_price)
-                [void]($content.ADI.Asset.Metadata.AppendChild($new_rental_price))
-            }
-            
-             $content.Save($modified + "\" + $alt_code + "_" + $value.strscreenFormat + ".xml")
-
+        if($orgcheck -contains $xml_filename){
+            Write-Debug "Found a DUPE! ... $($xml_filename)"
+            Write-Log $xml_filename "W" "Found duplicate file for $($xml_filename)... Skipping!)"
+            #write-Host("Duplicate file found ORIGINAL directory... skipping $($xml_filename)") -ForegroundColor Yellow
+            BREAK;
+        } else {
+            $content.Save($originals + "\" + $xml_filename)
+            Write-Debug "Saving ORIGINAL file"
+            Write-Log $xml_filename "I" "$($xml_filename) is ORIGINAL... Saving!"
+            $numOrig++
         }
+		
+		
+		#set class node values
+			#$class_package = $content.ADI.Metadata.AMS		# dont need this one
+		$class_title = $content.ADI.Asset.Metadata
+			#$class_movie = $content.ADI.Asset.Asset		$ dont need this one
+		
+		#child nodes
+		$ams_product = ($content.ADI.Metadata.AMS.Product)
+		$app_Title = ($class_title.App_Data | Where-Object {$_.Name -eq "Title"})
+		$app_SuggestedPrice = ($class_title.App_Data | Where-Object {$_.Name -eq "suggested_price"})
+		# $app_HDSD_RentalPrice = ($class_title.App_Data | Where-Object {$_.Name -eq $rentalNodeName})
+		# $app_RentalPrice = ($class_title.App_Data | Where-Object {$_.Name -eq "rental_price"})
+		# $app_MSVOffer = ($class_title.App_Data | Where-Object {($_.Name -eq "msv_offer") -and ($_.value -like "*rent*")})		# we only want the offer for rentals
+		$app_Rental = ($class_title.App_Data | Where-Object {$_.Name -eq "Rental"})
+		$app_LWS = ($class_title.App_Data | Where-Object {$_.Name -eq "Licensing_Window_Start"})
+		$app_LWE = ($class_title.App_Data | Where-Object {$_.Name -eq "Licensing_Window_End"})
+		
+		
+		
+		# ### START MAIN LOGIC ### #
+		
+		# NODE CHECK
+		
+		# Rental Node
+		if(!($app_Rental)){
+			
+			# node missing
+			Write-Debug "MISSING Node: Rental ..."
+			
+			# build it
+			$app_elem = $content.CreateElement("App_Data")
+			$app_elem.SetAttribute("App","$($AMS_product)")
+			$app_elem.SetAttribute("Name","Rental")
+			$app_elem.SetAttribute("Value","Y")	
+			$app_Rental = $class_title.AppendChild($app_elem)
+			
+			Write-Host "Rental Node built." -ForegroundColor Green
+			Write-Log $xml_filename "W" "Rental node was missing. Built node and set to 'Y'."
+			
+		} else {
+		
+			# node found ... check value and/or set
+            Write-Debug "FOUND $($app_Rental.Name) ..."
+            Write-Log $xml_filename "I" "Rental node found with value: $($app_Rental.Value)"
 
-        ######################################################################################################################################
-        # SD Values
-        ######################################################################################################################################
-        If ($value.strscreenformat -like "*HLS_SM_SD*")
-        {
-            $sd_variant = 1
-            [void]($content = [xml]($value.xmlContent))
-            $content.Save($originals + "\" + $alt_code + "_" + $value.strscreenFormat + ".xml")
-            [void]($type = ($content.ADI.Asset.Metadata.App_Data | Where-Object {$_.Name.ToLower() -eq "title"}).App)
+			if ($app_Rental.value -ne "Y") {
+				Write-Host -NoNewline "Rental value changed from $($app_Rental.value) --> " -ForegroundColor Yellow
+				$app_Rental.value = "Y"
+				Write-Host "$($app_Rental.value)" -ForegroundColor Green
+                Write-Log $xml_filename "I" "changed Rental node value to: $($app_Rental.Value)"
+			}
+		}
+		
+		# Suggested_Price Node
+		if(!($app_SuggestedPrice)){
+			
+			# node missing
+			Write-Debug "MISSING Node: Suggested_Price ..."
+			
+			# build it
+			$app_elem = $content.CreateElement("App_Data")
+			$app_elem.SetAttribute("App","$($AMS_product)")
+			$app_elem.SetAttribute("Name","Suggested_Price")
+			$app_elem.SetAttribute("Value","$($newRentalPrice)")
+			$app_SuggestedPrice = $class_title.AppendChild($app_elem)
+			
+			Write-Host "Built $($app_SuggestedPrice.Name) node." -ForegroundColor Green
+            Write-Log $xml_filename "W" "Suggested_Price node missing. Built node and set value: $($app_SuggestedPrice.value)"
+			
+		} else {
+		    Write-Debug "FOUND $($app_SuggestedPrice.Name) ..."
+            Write-Log $xml_filename "I" "Found $($app_SuggestedPrice.Name) with value: $($app_SuggestedPrice.Value)"
 
+			# node found ... check value and/or set
+			if($app_SuggestedPrice.value -ne $newRentalPrice){
+				$app_SuggestedPrice.value = $newRentalPrice
+				Write-Host "Changed $($app_SuggestedPrice.Name) to $($app_SuggestedPrice.value)" -ForegroundColor Green
+                Write-Log $xml_filename "I" "Changed $($app_SuggestedPrice.Name) to $($app_SuggestedPrice.value)"
+			}
+			
+		}
+		
+		# Licensing_Window_Start Node
+		if(!($app_LWS)){
+			# Node missing
+			Write-Host "MISSING Node: Licensing_Window_Start. Check the REVIEW directory for $($xml_filename)" -ForegroundColor Red
+            Write-Log $xml_filename "E" "Licensing_Window_Start is missing! copy of metadata saved to \Review\ with filename $($xml_filename)"
+            Write-Log $xml_filename "E" "Check for mispellings in node name, improperly formated date value, or missing node."
+            Write-Log $xml_filename "E" "Breaking out and moving to next asset."
 
+            #save modified version in \Review\
+	    	$isReview++
+		
+		} else {
+			# Found node
+			Write-debug "Found $($app_LWS.Name)"
+			Write-Log $xml_filename "I" "Found $($app_LWE.Name) with value: $($app_LWE.Value)"
+			
+			# recast value from string to Date-Time
+			[DateTime]$dt_LWS = $app_LWS.value
+			$today = Get-Date
+            $newLWS = $today.AddDays(-1)
 
-            If ($content.ADI.Asset.Metadata.App_Data | Where-Object {$_.Name.ToLower() -eq "suggested_price"})
-            {
-                $node = ($content.ADI.Asset.Metadata.App_Data | Where-Object {$_.Name.ToLower() -eq "suggested_price"})
-                Foreach ($n in $node)
-                {
-                    [void]($n.ParentNode.RemoveChild($n))
-                }
+            # if LWS is not at least yesterday or later raise error and save to \REVIEW\
+            if(!($dt_LWS -lt $today)){
+                # $isReview++
+
+                Write-Debug "$($app_LWS.Name) [$($app_LWS.Value)] is NOT LESS THAN $($today)"
+                Write-Log $xml_filename "W" "$($app_LWS.Name) [$($app_LWS.Value)] is NOT LESS THAN $($today)"
+
+                # set the LWS value to yesterday
+                $app_LWS.Value = $newLWS
+
+                Write-Debug "Set $($app_LWS.Name) to $($app_LWS.Value)"
+                Write-Log $xml_filename "W" "Set $($app_LWS.Name) to $($app_LWS.Value)"
+
+            } else {
+                Write-Debug "$($app_LWS.Name) is in the past."
             }
-            
-            If ($content.ADI.Asset.Metadata.App_Data | Where-Object {$_.Name.ToLower() -eq "sd_rental_price"})
-            {
-            
-                $node = ($content.ADI.Asset.Metadata.App_Data | Where-Object {$_.Name.ToLower() -eq "sd_rental_price"})
-                Foreach ($n in $node)
-                {
-                    [void]($n.ParentNode.RemoveChild($n))
-                }
-            }
+			
+		}
+		
+		
+		# Licensing_Window_End Node
+		if(!($app_LWE)){
+			# Node MISSING
+			Write-Host "MISSING Node: EST_Licensing_Window_End. Check the REVIEW directory for $($xml_filename)" -ForegroundColor Red
+            Write-Log $xml_filename "E" "EST_Licensing_Window_End is missing! copy of metadata saved to \Review\ with filename $($xml_filename)"
+            Write-Log $xml_filename "E" "Check for mispellings in node name, improperly formated date value, or missing node."
+            Write-Log $xml_filename "E" "Breaking out and moving to next asset."
 
-            
-            If (($content.ADI.Asset.Metadata.App_Data | Where-Object {$_.Name.ToLower() -eq "rental_price"}))
-            {
-            
-                $node = ($content.ADI.Asset.Metadata.App_Data | Where-Object {$_.Name.ToLower() -eq "rental_price"})
-                Foreach ($n in $node)
-                {
-                    [void]($n.ParentNode.RemoveChild($n))
-                }
-            }
+            #save modified version in \Review\
+	    	$isReview++
+			
+		} else {
+            Write-Debug "FOUND $($app_LWE.Name) ..."
+            Write-Log $xml_filename "I" "Found $($app_LWE.Name) with value: $($app_LWE.Value)"
 
-            
-            If ($content.ADI.Asset.Metadata.App_Data | Where-Object {($_.Name.ToLower() -eq "msv_offer") -and ($_.Value.ToLower() -like "*rent*")})
-            {
-   
-                $old_offer = ($content.ADI.Asset.Metadata.App_Data | Where-Object {($_.Name.ToLower() -eq "msv_offer") -and ($_.Value.ToLower() -like "*rent*")}).Value.Split("|")
-                $days = $old_offer[1]
-                $hours = $old_offer[2]
+			# Node Found
+			[DateTime]$dt_LWE = $app_LWE.value
+			$today = Get-Date
+            $newLWE = $today.AddDays(7)
+			
+			# is LWE more than 7 days in the future
+			if($dt_LWE -gt ($today+7)){
+				Write-Debug "$($app_LWE.Name) is MORE than 7 days in the future"
+                Write-Log $xml_filename "I" "$($app_LWE.Name) is MORE than 7 days in the future"
+			} else {
+				Write-Host -NoNewline "$($app_LWE.Name) [$($app_LWE.value)] changed to " -ForegroundColor Red
 
-                $msv_offer = "Extended Rent|" + $days + "|" + $hours + "|`$2.99"
-                [void](($content.ADI.Asset.Metadata.App_Data | Where-Object {($_.Name.ToLower() -eq "msv_offer") -and ($_.Value.ToLower() -like "*rent*")}).Value = $msv_offer)
+                $app_LWE.value = [string]$newLWE
 
+                Write-Host -NoNewline "--> " -ForegroundColor Yellow
+                Write-Host "$($app_LWE.Value)" -ForegroundColor Green
 
-            }
-
-            If (($content.ADI.Asset.Metadata.App_Data | Where-Object {$_.Name.ToLower() -eq "suggested_price"}).Value )
-            { 
-                ($content.ADI.Asset.Metadata.App_Data | Where-Object {$_.Name.ToLower() -eq "suggested_price"}).Value = $sd_price
-            }
-            Else
-            {
-                $new_suggested_price = $content.CreateElement("App_Data")
-                $new_suggested_price.SetAttribute("App",$type)
-                $new_suggested_price.SetAttribute("Name","Suggested_Price")
-                $new_suggested_price.SetAttribute("Value",$sd_price)
-                [void]($content.ADI.Asset.Metadata.AppendChild($new_suggested_price))
-            }
-            
-            If (($content.ADI.Asset.Metadata.App_Data | Where-Object {$_.Name.ToLower() -eq "sd_rental_price"}).Value )
-            { 
-                ($content.ADI.Asset.Metadata.App_Data | Where-Object {$_.Name.ToLower() -eq "sd_rental_price"}).Value = $sd_price
-            }
-            Else
-            {
-                $new_sd_rental_price = $content.CreateElement("App_Data")
-                $new_sd_rental_price.SetAttribute("App",$type)
-                $new_sd_rental_price.SetAttribute("Name","SD_Rental_Price")
-                $new_sd_rental_price.SetAttribute("Value",$sd_price)
-                [void]($content.ADI.Asset.Metadata.AppendChild($new_sd_rental_price))
-            }
-            
-            If (($content.ADI.Asset.Metadata.App_Data | Where-Object {$_.Name.ToLower() -eq "rental_price"}).Value )
-            { 
-                ($content.ADI.Asset.Metadata.App_Data | Where-Object {$_.Name.ToLower() -eq "rental_price"}).Value = $sd_price
-            }
-            Else
-            {
-                $new_rental_price = $content.CreateElement("App_Data")
-                $new_rental_price.SetAttribute("App",$type)
-                $new_rental_price.SetAttribute("Name","Rental_Price")
-                $new_rental_price.SetAttribute("Value",$sd_price)
-                [void]($content.ADI.Asset.Metadata.AppendChild($new_rental_price))
-            }
-            
-             $content.Save($modified + "\" + $alt_code + "_" + $value.strscreenFormat + ".xml") 
-
-        }
-    }
-
-    If ($hd_variant -eq 0)
-    {
-        Add-Content $failure_log_file "$alt_code : the HD version was not found"
-      
-    }
-    If ($sd_variant -eq 0)
-    {
-        Add-Content $failure_log_file "$alt_code : the SD version was not found"
-      
-    }
-    
-    
+                Write-Log $xml_filename "W" "$($app_LWE.Name) was less than 7 days in the future."
+                Write-Log $xml_filename "W" "changed value to: $($app_LWE.Value)"
+			}
+		}
+		
+	
+		# done processing and moving to next asset
+		if($isReview -ge 1){
+			Write-Debug "Saving $($xml_filename) to $($reviewD)"
+			Write-Log $xml_filename "I" "Unknown warnings or errors found."
+			Write-Log $xml_filename "I" "Saving $($xml_filename) to $(reviewD) for review."
+			$content.Save($reviewD + "\" + $xml_filename)
+		}
+		
+		if($msvFound -eq 1){
+			Write-Host("Processing complete. Saving changes to $($modified)")
+			
+			#save modified version -- this in the right place?
+			$numMod++
+			$content.Save($modified + "\" + $xml_filename)
+			
+		} else {
+			Write-Host("AssetID was not found in MSV!") -ForegroundColor Red
+		}	
+	}
 }
+
 $SqlConnection.Close()
