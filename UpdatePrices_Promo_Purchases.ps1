@@ -10,13 +10,26 @@
 # Name:     UpdatePrices_Promo_Purchases.ps1
 # Authors:  Elena Raines and James Griffith
 # Version:  1.4
+# History:  02-14-17 - 	Initial release
+#			11-02-17 - 	ADD logging feature
+#						ADD debug feature
+#						ADD IsNull checking funtion
+#						UPDATE logic to check the PURCHASE flag and EST_License_Window_Start/_END dates
+#			11-30-17 -	move HD/SD notification from DEBUG to production mode, log it and add to summary report
+#           10-10-18 -  Reorganize code for debugging and testing
+#                    -  Fix XML node adding bug when EST_LICENSE_WINDOW_START/_END is missing.
+#                    -  update Write-Log() to latest function version from psmodTVEVODUtils.psm1
+#           12-12-18 -  [bug fix] Powershell version changed to 4.0.1.1 and we lost access to Rows.Count
+#							ADD Dataset.Tables.Rows | Measure-Object to get number of rows returned from
+#							out SQL query. If no ROWS returned we break out since there is no data for us
+#							work with. The incident is also logged and output set to the user.
 #
 ####################################################################
 
 # Write-Debug -- this might work
 	#uncomment preference to turn on/off output
-	#$DebugPreference = "SilentlyContinue"
-	$DebugPreference = "Continue"
+	$DebugPreference = "SilentlyContinue"
+	#$DebugPreference = "Continue"
 	Write-Debug("DEBUG ACTIVE!")
 
 # set environment variables
@@ -210,8 +223,6 @@ Foreach ($line in $file_contents)
 	  
 		Foreach ($value in $DataSet.Tables[0])
 		{
-	   #if($numRows -eq 0){Write-Debug("No data in DATASET.TABLES ... Breaking out!");Break;}
-
 			# get XML from dataset return (query) and save the original
 			 [void]($content = [xml]($value.xmlContent))
 			 [void]($cfid = $alt_code + "_" + $value.strscreenFormat + ".xml")		# set our file name for use later
@@ -346,7 +357,7 @@ Foreach ($line in $file_contents)
 					$now = Get-Date
 					Write-Log -filename $cfid -loglevel "W" -message $e_message
 					Write-Log -filename $cfid -loglevel "I" -message "Today: $($now) <--> LWS: $($LWS.Value)"
-					Write-Log -filename $cfid -loglevel "I" -message $e_message "Continuing on."
+					Write-Log -filename $cfid -loglevel "I" -message ($e_message +" Continuing on.")
 					
 				}
 				
