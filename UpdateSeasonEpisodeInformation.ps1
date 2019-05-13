@@ -40,8 +40,8 @@
 
 # Write-Debug -- debug mode
 # uncomment preference to turn on/off output
-#$DebugPreference = "SilentlyContinue"
-$DebugPreference = "Continue"
+$DebugPreference = "SilentlyContinue"
+#$DebugPreference = "Continue"
 Write-Debug("DEBUG ACTIVE!")
 
 # set environment variables

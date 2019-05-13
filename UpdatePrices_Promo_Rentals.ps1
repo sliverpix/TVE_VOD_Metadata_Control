@@ -20,8 +20,8 @@
 
 	# Write-Debug -- this might work
 	#uncomment preference to turn on/off output
-	#$DebugPreference = "SilentlyContinue"
-	$DebugPreference = "Continue"
+	$DebugPreference = "SilentlyContinue"
+	#$DebugPreference = "Continue"
 	Write-Debug("DEBUG ACTIVE!")
 
 # ### set our variables first ### #
