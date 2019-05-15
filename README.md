@@ -17,7 +17,7 @@ __History__:
 * 02-07-18 - [Griffith] add processing functions from my library to keep better track of of this scripts work
 * 04-26-19 - Rewriting code base... simpilier ways to accomplish the same thing. Need to add many core functions from the other scripts. Make this a little less complicated and a little more manageable
 * 05-15-19 - [Griffith] fix HD/SD switch block detection.
-	* - Edit header to point to Repo for history.
+	* Edit header to point to Repo for history.
 
 
 # UpdatePrices_Promo_Purchase
