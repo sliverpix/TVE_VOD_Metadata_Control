@@ -5,16 +5,9 @@
 # 
 #
 # Name:     UpdatePrices_Promo_Rentals.ps1
-# Authors:  Elena Raines
-# Version:  2.0
-# History:  02-14-17 - Initial release
-#			02-07-18 - [Griffith] add processing functions from my
-#						library to keep better track of of this
-#						scripts work
-#			04-26-19 -	Rewriting code base... simpilier ways to 
-#						accomplish the same thing. and need to add 
-#						many core functions from the other scripts.
-#						Make this a little less complicated and a little more manageable
+# Authors:  James Griffith
+# Version:  2.0.1
+# History:  https://github.com/sliverpix/TVE_VOD_Metadata_Control/
 #
 ####################################################################
 
@@ -221,8 +214,8 @@ Foreach ($alt_code in $alt_codes)
 
 		# setup our HD/SD dependant values/variables
 		Switch -wildcard ($value.strScreenFormat) {
-			"*HLS_HD*" { 
-						Write-Host("... HLS_HD meta")
+			"*_HD" { 
+						Write-Host("... $($value.strscreenformat) meta")
 						Write-Log $xml_filename "I" "Found HD metadata. Processing ..."
 						$msvFound = 1
 						$hd_variant = 1
@@ -230,8 +223,8 @@ Foreach ($alt_code in $alt_codes)
 
 						BREAK;
 			}
-			"*HLS_SD*" {
-						Write-Host("... HLS_SD meta")
+			"*_SD" {
+						Write-Host("... $($value.strscreenformat) meta")
 						Write-Log $xml_filename "I" "Found SD metadata. Processing ..."
 						$msvFound = 1
 						$sd_variant = 1

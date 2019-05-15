@@ -7,7 +7,7 @@ __Description__:
 
 Authors: | James Griffith
 -------- | ---------------
-__Version:__ | __2.0__
+__Version:__ | __2.0.1__
 
 This scrips download/pull ADI files out of the DB for Alt_Codes provided in UpdatePrices_Promo_Rentals.txt file and updates the SD/HD prices to $2.99/$3.99
 
@@ -16,6 +16,8 @@ __History__:
 * 02-14-17 - Initial release
 * 02-07-18 - [Griffith] add processing functions from my library to keep better track of of this scripts work
 * 04-26-19 - Rewriting code base... simpilier ways to accomplish the same thing. Need to add many core functions from the other scripts. Make this a little less complicated and a little more manageable
+* 05-15-19 - [Griffith] fix HD/SD switch block detection.
+	* - Edit header to point to Repo for history.
 
 
 # UpdatePrices_Promo_Purchase
