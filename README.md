@@ -50,7 +50,7 @@ __Description__:
 
  Authors: | James Griffith
  -------- | ---------------
- __Version:__ | __1.10.2__
+ __Version:__ | __1.10.3__
  
  This scrips downloads / pulls ADI files out of the DB for correction
  to SEASON, Season_ID, EPISODE_NUM and EPISODE_ID. ONLY HLS title
