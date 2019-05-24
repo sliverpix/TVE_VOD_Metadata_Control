@@ -7,9 +7,11 @@ node checks
 		-- IF NOT build and set empty value
 	
 Value check
+	-- if Content_Type="TVS" AND SubscriptionType="MSV_HBO"
+		-- dont prepend!
 	-- if isSubscription=Y
 		-- Series_Id (see Series_Id logic below from AssetMgrBase.cs)
-			-- IF EMPTY set to "SUB"+Series_Name.value
+			-- IF EMPTY set to "SUB_"+Series_Name.value
 			-- IF NOT set value to "SUB_"+Series_Id.value
 		-- Episode_Id
 			-- IF EMPTY set to Episode_Name.value
@@ -17,12 +19,14 @@ Value check
 			
 Series_Id from AssetMgrBase.cs
 LN: 1531 - 1533
+	-- str40 is Series_Id.value
+	-- IF EMPTY Series_Id.value = Series_Name.value
             string str40 = AssetMgtUtilities.GetXPathValue(xContent, "(//Asset/Metadata/AMS[@Asset_Class=\"title\"]/../App_Data[@Name=\"Series_Id\"]/@Value)[1]", "");
             if (str40.Trim() == string.Empty)
               str40 = AssetMgtUtilities.GetXPathValue(xContent, "(//Asset/Metadata/AMS[@Asset_Class=\"title\"]/../App_Data[@Name=\"Series_Name\"]/@Value)[1]", "");
 LN: 1604 - 1605
 	-- what is str41? Content_Type
-	-- thus IF Content_Type='TVS' AND Subscription_Type='MSV_HBO' pre-pend 'SUB_'
+	-- thus IF Content_Type='TVS' AND Subscription_Type='MSV_HBO' pre-pend 'SUB_' to Series_Id.value
               if (str41 == "TVS" && SubscriptionType == "MSV_HBO")
                 str40 = "SUB_" + str40;
 				
@@ -30,12 +34,15 @@ Series_Name from AssetMgrBase.cs
 LN: 1532 - 1534
             if (str40.Trim() == string.Empty)
               str40 = AssetMgtUtilities.GetXPathValue(xContent, "(//Asset/Metadata/AMS[@Asset_Class=\"title\"]/../App_Data[@Name=\"Series_Name\"]/@Value)[1]", "");
-            string xpathValue26 = AssetMgtUtilities.GetXPathValue(xContent, "(//Asset/Metadata/AMS[@Asset_Class=\"title\"]/../App_Data[@Name=\"Series_Name\"]/@Value)[1]", "");
+			  string xpathValue26 = AssetMgtUtilities.GetXPathValue(xContent, "(//Asset/Metadata/AMS[@Asset_Class=\"title\"]/../App_Data[@Name=\"Series_Name\"]/@Value)[1]", "");
 			
 Episode_Id from AssetMgrBase.cs
-LN: 1526 - 1528
+LN: 1525 - 1528
 	-- xpathValue23=Episode_Number.value
 	-- IF EMPTY it becomes Episode_Id.value
+			string xpathValue22 = AssetMgtUtilities.GetXPathValue(xContent, "(//Asset/Metadata/AMS[@Asset_Class=\"title\"]/../App_Data[@Name=\"Episode_Number\"]/@Value)[1]", "");
             string xpathValue23 = AssetMgtUtilities.GetXPathValue(xContent, "(//Asset/Metadata/AMS[@Asset_Class=\"title\"]/../App_Data[@Name=\"Episode_Number\"]/@Value)[1]", "");
             if (xpathValue23.Trim() == string.Empty)
               xpathValue23 = AssetMgtUtilities.GetXPathValue(xContent, "(//Asset/Metadata/AMS[@Asset_Class=\"title\"]/../App_Data[@Name=\"Episode_Id\"]/@Value)[1]", "");
+
+			  
