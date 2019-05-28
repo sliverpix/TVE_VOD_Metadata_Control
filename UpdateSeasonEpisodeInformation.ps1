@@ -16,7 +16,7 @@
 #
 # Name:     updateSeasonEpisodeInformation.ps1
 # Authors:  James Griffith
-# Version:  1.10.3
+# Version:  1.10.4T
 #
 ####################################################################
 #
@@ -40,8 +40,8 @@
 
 # Write-Debug -- debug mode
 # uncomment preference to turn on/off output
-$DebugPreference = "SilentlyContinue"
-#$DebugPreference = "Continue"
+#$DebugPreference = "SilentlyContinue"
+$DebugPreference = "Continue"
 Write-Debug("DEBUG ACTIVE!")
 
 # set environment variables
@@ -812,6 +812,8 @@ Foreach ($line in $contents){
         $app_Category = ($class_title.App_Data | Where-Object {$_.Name -eq "Category"})
         $app_CategoryDisplay = ($class_title.App_Data | Where-Object {$_.Name -eq "Category_Display"})
 		$app_RatingMPAA = ($class_title.App_Data | Where-Object {$_.Name -eq "Rating_MPAA"})
+		$app_SubscriptionType = ($class_title.App.data | Where-Object {$_.Name -eq "Subscription_type"})
+		$app_IsSubscription = ($class_title.App.data | Where-Object {$_.Name -eq "IsSubscription"})
 		
 
 		### START LOGIC ###
@@ -971,6 +973,43 @@ Foreach ($line in $contents){
 
 		}
 		
+		# SERIES_ID Node
+		# if node does NOT exist build it and set an empty value
+		if (!($app_SeasonID)){
+			$e_message = "[Series_Id] node is MISSING !! Building node..."
+			$numWarn++
+			write-log $xml_filename "w" " $($e_message)"
+			Write-Host ($e_message) -ForegroundColor yellow
+			
+			# build our node and set an empty value for now.
+			$app_elem = $content.CreateElement("App_Data")
+			$app_elem.SetAttribute("App","$($AMS_product)")
+			$app_elem.SetAttribute("Name","Series_Id")
+			$app_elem.SetAttribute("Value","")	
+			$app_SeasonID = $content.ADI.Asset.Metadata.AppendChild($app_elem)
+			Write-Log $xml_filename "w" " Finished building Series_Id node. It is empty currently."
+			Write-Host ("[Series_Id] element built. Value is currently EMPTY.") -ForegroundColor Green
+		
+		}
+		
+		# EPISODE_ID Node
+		# if node does NOT exist build it and set an empty value
+		if (!($app_EpisodeID)){
+			$e_message = "[Episode_Id] node is MISSING !! Building node..."
+			$numWarn++
+			write-log $xml_filename "w" " $($e_message)"
+			Write-Host ($e_message) -ForegroundColor yellow
+			
+			# build our node and set an empty value for now.
+			$app_elem = $content.CreateElement("App_Data")
+			$app_elem.SetAttribute("App","$($AMS_product)")
+			$app_elem.SetAttribute("Name","Episode_Id")
+			$app_elem.SetAttribute("Value","")	
+			$app_EpisodeID = $content.ADI.Asset.Metadata.AppendChild($app_elem)
+			Write-Log $xml_filename "w" " Finished building Episode_Id node. It is empty currently."
+			Write-Host ("[Episode_Id] element built. Value is currently EMPTY.") -ForegroundColor Green
+		
+		}
 		
 		# SEASON NODE
         if (!($app_Season)){
@@ -1015,7 +1054,7 @@ Foreach ($line in $contents){
 			}
 		}
 		
-		# EPISODE NODE
+		# EPISODE_NUMBER NODE
         if (!($app_EpisodeNum)){
 			$e_message = "EPISODE_NUMBER node is MISSING !! Building node..."
 			$numWarn++
@@ -1069,6 +1108,80 @@ Foreach ($line in $contents){
 		}
 				
 		#### NODE Check Stop #####
+		
+		# check Series_Id
+		# case sensitive NAME check
+		if(!($app_SeasonID.name -ceq "Series_Id")) {
+			$app_SeriesID.name="Series_Id"
+			$e_message = "[Series_Id] Improper Alpha-Case found. Changed element name to $($app_SeriesID.name)"
+			Write-Debug($e_message)
+			Write-Log $xml_filename "i" "$($e_message)"
+		}
+		
+		
+		# check EPISODE_ID
+		# case sensitive NAME check
+		if(!($app_EpisodeID.name -ceq "Episode_Id")) {
+			$app_EpisodeID.name="Episode_Id"
+			$e_message = "[Episode_Id] Improper Alpha-Case found. Changed element name to $($app_EpisodeID.name)"
+			Write-Debug($e_message)
+			Write-Log $xml_filename "i" "$($e_message)"
+		}
+		
+		# check & set value of Series_Id and EPISODE_ID
+		if ($app_IsSubscription.value -eq "Y")
+		{
+			Write-Debug("[Series_Id & Episode_Id] $($app_IsSubscription.name) set to TRUE.")
+			# if its an HBO show, dont prepend "Sub_" to Series_Id value
+			Switch ($app_SubscriptionType.value)
+			{
+				"MSV_HBO"	{
+								$e_message = "[Series_Id] Found MSV_HBO for $($app_SubscriptionType.name)"
+								Write-Debug($e_message)
+								Write-Log $xml_filename "i" "$($e_message)"
+								
+								if(isNull($app_SeriesID.value)) {
+									$e_message = "[Series_Id] is EMPTY. Setting value to $($app_SeriesName.value)"
+									Write-Debug($e_message)
+									Write-Log $xml_filename "w" "$($e_message)"
+									$numWarn++
+									$app_SeriesID.value = $app_SeriesName.value
+								}
+				}
+				default		{
+								$e_message = "[Series_Id] Found $($app_SubscriptionType.value) for $($app_SubscriptionType.name)"
+								Write-Debug($e_message)
+								Write-Log $xml_filename "i" "$($e_message)"
+								
+								if(isNull($app_SeriesID.value)) {
+									$e_message = "[Series_Id] is EMPTY. Setting value to Sub_$($app_SeriesName.value)"
+									$app_SeriesID.value = "Sub_" + $app_SeriesName.value
+								} else {
+									$e_message = "[Series_Id] Setting value to Sub_$($app_SeriesID.value)"
+									$app_SeriesID.value = "Sub_" + $app_SeriesID.value
+								}
+								
+								Write-Debug($e_message)
+								Write-Log $xml_filename "w" "$($e_message)"
+								$numWarn++
+				}
+			}
+			
+			# if EPISODE_ID is empty set it to EPISODE_NAME
+			if(isNull($app_EpisodeID.value)){
+				$e_message = "[Episode_Id] is EMPTY. Setting to $($app_EpisodeName.value)"
+				Write-Debug($e_message)
+				Write-Log $xml_filename "w" "$($e_message)"
+				$numWarn++
+				
+				$app_EpisodeID.value = $app_EpisodeName.value
+			}
+		
+		} else {
+			$e_message = "[Series_Id & Episode_Id] $($app_IsSubscription.name) set to FALSE."
+			Write-Debug($e_message)
+			Write-Log $xml_filename "W" "$($e_message)"
+		}
 		
 		Write-Debug ("[TITLE_BRIEF node] checking Title_Brief...")
 		
