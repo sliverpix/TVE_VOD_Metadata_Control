@@ -812,8 +812,8 @@ Foreach ($line in $contents){
         $app_Category = ($class_title.App_Data | Where-Object {$_.Name -eq "Category"})
         $app_CategoryDisplay = ($class_title.App_Data | Where-Object {$_.Name -eq "Category_Display"})
 		$app_RatingMPAA = ($class_title.App_Data | Where-Object {$_.Name -eq "Rating_MPAA"})
-		$app_SubscriptionType = ($class_title.App.data | Where-Object {$_.Name -eq "Subscription_type"})
-		$app_IsSubscription = ($class_title.App.data | Where-Object {$_.Name -eq "IsSubscription"})
+		$app_SubscriptionType = ($class_title.App_Data | Where-Object {$_.Name -eq "Subscription_type"})
+		$app_IsSubscription = ($class_title.App_Data | Where-Object {$_.Name -eq "IsSubscription"})
 		
 
 		### START LOGIC ###
@@ -975,7 +975,7 @@ Foreach ($line in $contents){
 		
 		# SERIES_ID Node
 		# if node does NOT exist build it and set an empty value
-		if (!($app_SeasonID)){
+		if (!($app_SeriesID)){
 			$e_message = "[Series_Id] node is MISSING !! Building node..."
 			$numWarn++
 			write-log $xml_filename "w" " $($e_message)"
@@ -986,7 +986,7 @@ Foreach ($line in $contents){
 			$app_elem.SetAttribute("App","$($AMS_product)")
 			$app_elem.SetAttribute("Name","Series_Id")
 			$app_elem.SetAttribute("Value","")	
-			$app_SeasonID = $content.ADI.Asset.Metadata.AppendChild($app_elem)
+			$app_SeriesID = $content.ADI.Asset.Metadata.AppendChild($app_elem)
 			Write-Log $xml_filename "w" " Finished building Series_Id node. It is empty currently."
 			Write-Host ("[Series_Id] element built. Value is currently EMPTY.") -ForegroundColor Green
 		
@@ -1111,7 +1111,7 @@ Foreach ($line in $contents){
 		
 		# check Series_Id
 		# case sensitive NAME check
-		if(!($app_SeasonID.name -ceq "Series_Id")) {
+		if(!($app_SeriesID.name -ceq "Series_Id")) {
 			$app_SeriesID.name="Series_Id"
 			$e_message = "[Series_Id] Improper Alpha-Case found. Changed element name to $($app_SeriesID.name)"
 			Write-Debug($e_message)
@@ -1129,9 +1129,18 @@ Foreach ($line in $contents){
 		}
 		
 		# check & set value of Series_Id and EPISODE_ID
+        if(!($app_IsSubscription)){
+            Write-Debug "[IsSuscription] element/node is MISSING!"
+        } else {
+			Write-Debug "[IsSuscription] element/node FOUND!"
+            Write-Debug $app_IsSubscription.Name
+            Write-Debug $app_IsSubscription.Value
+            Write-Debug $app_IsSubscription.App
+        }
+
 		if ($app_IsSubscription.value -eq "Y")
 		{
-			Write-Debug("[Series_Id & Episode_Id] $($app_IsSubscription.name) set to TRUE.")
+			Write-Debug("[Series_Id & Episode_Id] IsSubscription set to $($app_IsSubscription.value).")
 			# if its an HBO show, dont prepend "Sub_" to Series_Id value
 			Switch ($app_SubscriptionType.value)
 			{
@@ -1178,9 +1187,10 @@ Foreach ($line in $contents){
 			}
 		
 		} else {
-			$e_message = "[Series_Id & Episode_Id] $($app_IsSubscription.name) set to FALSE."
+			$e_message = "[Series_Id & Episode_Id] IsSubscription set to $($app_IsSubscription.value)."
 			Write-Debug($e_message)
 			Write-Log $xml_filename "W" "$($e_message)"
+			$numWarn++
 		}
 		
 		Write-Debug ("[TITLE_BRIEF node] checking Title_Brief...")
