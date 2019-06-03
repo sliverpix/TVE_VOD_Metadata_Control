@@ -992,24 +992,7 @@ Foreach ($line in $contents){
 		
 		}
 		
-		# EPISODE_ID Node
-		# if node does NOT exist build it and set an empty value
-		if (!($app_EpisodeID)){
-			$e_message = "[Episode_Id] node is MISSING !! Building node..."
-			$numWarn++
-			write-log $xml_filename "w" " $($e_message)"
-			Write-Host ($e_message) -ForegroundColor yellow
-			
-			# build our node and set an empty value for now.
-			$app_elem = $content.CreateElement("App_Data")
-			$app_elem.SetAttribute("App","$($AMS_product)")
-			$app_elem.SetAttribute("Name","Episode_Id")
-			$app_elem.SetAttribute("Value","")	
-			$app_EpisodeID = $content.ADI.Asset.Metadata.AppendChild($app_elem)
-			Write-Log $xml_filename "w" " Finished building Episode_Id node. It is empty currently."
-			Write-Host ("[Episode_Id] element built. Value is currently EMPTY.") -ForegroundColor Green
-		
-		}
+
 		
 		# SEASON NODE
         if (!($app_Season)){
@@ -1121,14 +1104,14 @@ Foreach ($line in $contents){
 		
 		# check EPISODE_ID
 		# case sensitive NAME check
-		if(!($app_EpisodeID.name -ceq "Episode_Id")) {
+		if($app_EpisodeID -AND (!($app_EpisodeID.name -ceq "Episode_Id"))) {
 			$app_EpisodeID.name="Episode_Id"
 			$e_message = "[Episode_Id] Improper Alpha-Case found. Changed element name to $($app_EpisodeID.name)"
 			Write-Debug($e_message)
 			Write-Log $xml_filename "i" "$($e_message)"
 		}
 		
-		# check & set value of Series_Id and EPISODE_ID
+		# check for IsSubscription node/element
         if(!($app_IsSubscription)){
             Write-Debug "[IsSuscription] element/node is MISSING!"
         } else {
@@ -1138,6 +1121,8 @@ Foreach ($line in $contents){
             Write-Debug $app_IsSubscription.App
         }
 
+
+		# check & set value of Series_Id
 		if ($app_IsSubscription.value -eq "Y")
 		{
 			Write-Debug("[Series_Id & Episode_Id] IsSubscription set to $($app_IsSubscription.value).")
@@ -1174,16 +1159,6 @@ Foreach ($line in $contents){
 								Write-Log $xml_filename "w" "$($e_message)"
 								$numWarn++
 				}
-			}
-			
-			# if EPISODE_ID is empty set it to EPISODE_NAME
-			if(isNull($app_EpisodeID.value)){
-				$e_message = "[Episode_Id] is EMPTY. Setting to $($app_EpisodeName.value)"
-				Write-Debug($e_message)
-				Write-Log $xml_filename "w" "$($e_message)"
-				$numWarn++
-				
-				$app_EpisodeID.value = $app_EpisodeName.value
 			}
 		
 		} else {
