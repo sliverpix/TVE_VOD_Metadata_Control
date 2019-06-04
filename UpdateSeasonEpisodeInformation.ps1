@@ -16,7 +16,7 @@
 #
 # Name:     updateSeasonEpisodeInformation.ps1
 # Authors:  James Griffith
-# Version:  1.10.4T
+# Version:  1.10.5
 #
 ####################################################################
 #
@@ -108,6 +108,8 @@ function Get-SeasonEpisode($stringToCheck) {
 	# DOUBLE CHECK THE OUTPUT!
     $rgx_type1 = [regex] 'S\d{1,2}:\d{1,3}'		# S##:## / ##:## (example: S04:05 = Season 4 episode 5)
 	
+	$rgx_type1_1 = [regex] 'S\d{1,2}:E\d{1,3}'	# S##:E### (Example: S13:E17 = Season 13 Episdoe 17)
+	
 	$rgx_type2 = [regex] 'S\d{1,2}-\d{1,3}'		# S##-## / ##-## (example: S04-05 = Season 4 episode 5)
 	
 	$rgx_type3 = [regex] '\d{1,2}E\d{1,3}'		# S##E## (example: S5E12 = Season 5 episode 12)
@@ -155,6 +157,17 @@ function Get-SeasonEpisode($stringToCheck) {
                             Write-Debug("[Get-SeasonEpisode] $($matches.values)")  
 							$s1 = $splitString[0].Substring(1)
 							$e1 = $splitString[1]
+                            Return $s1.Trim(),$e1.Trim(),$typeMatch
+							BREAK;
+			}
+			$rgx_type1_1 { 	
+                            Write-Debug("[Get-SeasonEpisode] I matched TYPE 1")
+							$typeMatch = 1
+                            $script:numType1++
+							$splitString = $matches.values.Trim() -split ":"
+                            Write-Debug("[Get-SeasonEpisode] $($matches.values)")  
+							$s1 = $splitString[0].Substring(1)
+							$e1 = $splitString[1].Substring(1)
                             Return $s1.Trim(),$e1.Trim(),$typeMatch
 							BREAK;
 			}
