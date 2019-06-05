@@ -16,7 +16,7 @@
 #
 # Name:     updateSeasonEpisodeInformation.ps1
 # Authors:  James Griffith
-# Version:  1.10.5T
+# Version:  1.10.3
 #
 ####################################################################
 #
@@ -108,8 +108,6 @@ function Get-SeasonEpisode($stringToCheck) {
 	# DOUBLE CHECK THE OUTPUT!
     $rgx_type1 = [regex] 'S\d{1,2}:\d{1,3}'		# S##:## / ##:## (example: S04:05 = Season 4 episode 5)
 	
-	$rgx_type1_1 = [regex] 'S\d{1,2}:E\d{1,3}'	# S##:E### (Example: S13:E17 = Season 13 Episdoe 17)
-	
 	$rgx_type2 = [regex] 'S\d{1,2}-\d{1,3}'		# S##-## / ##-## (example: S04-05 = Season 4 episode 5)
 	
 	$rgx_type3 = [regex] '\d{1,2}E\d{1,3}'		# S##E## (example: S5E12 = Season 5 episode 12)
@@ -157,17 +155,6 @@ function Get-SeasonEpisode($stringToCheck) {
                             Write-Debug("[Get-SeasonEpisode] $($matches.values)")  
 							$s1 = $splitString[0].Substring(1)
 							$e1 = $splitString[1]
-                            Return $s1.Trim(),$e1.Trim(),$typeMatch
-							BREAK;
-			}
-			$rgx_type1_1 { 	
-                            Write-Debug("[Get-SeasonEpisode] I matched TYPE 1")
-							$typeMatch = 1
-                            $script:numType1++
-							$splitString = $matches.values.Trim() -split ":"
-                            Write-Debug("[Get-SeasonEpisode] $($matches.values)")  
-							$s1 = $splitString[0].Substring(1)
-							$e1 = $splitString[1].Substring(1)
                             Return $s1.Trim(),$e1.Trim(),$typeMatch
 							BREAK;
 			}
@@ -825,8 +812,6 @@ Foreach ($line in $contents){
         $app_Category = ($class_title.App_Data | Where-Object {$_.Name -eq "Category"})
         $app_CategoryDisplay = ($class_title.App_Data | Where-Object {$_.Name -eq "Category_Display"})
 		$app_RatingMPAA = ($class_title.App_Data | Where-Object {$_.Name -eq "Rating_MPAA"})
-		$app_SubscriptionType = ($class_title.App_Data | Where-Object {$_.Name -eq "Subscription_type"})
-		$app_IsSubscription = ($class_title.App_Data | Where-Object {$_.Name -eq "IsSubscription"})
 		
 
 		### START LOGIC ###
@@ -986,26 +971,6 @@ Foreach ($line in $contents){
 
 		}
 		
-		# SERIES_ID Node
-		# if node does NOT exist build it and set an empty value
-		if (!($app_SeriesID)){
-			$e_message = "[Series_Id] node is MISSING !! Building node..."
-			$numWarn++
-			write-log $xml_filename "w" " $($e_message)"
-			Write-Host ($e_message) -ForegroundColor yellow
-			
-			# build our node and set an empty value for now.
-			$app_elem = $content.CreateElement("App_Data")
-			$app_elem.SetAttribute("App","$($AMS_product)")
-			$app_elem.SetAttribute("Name","Series_Id")
-			$app_elem.SetAttribute("Value","")	
-			$app_SeriesID = $content.ADI.Asset.Metadata.AppendChild($app_elem)
-			Write-Log $xml_filename "w" " Finished building Series_Id node. It is empty currently."
-			Write-Host ("[Series_Id] element built. Value is currently EMPTY.") -ForegroundColor Green
-		
-		}
-		
-
 		
 		# SEASON NODE
         if (!($app_Season)){
@@ -1050,7 +1015,7 @@ Foreach ($line in $contents){
 			}
 		}
 		
-		# EPISODE_NUMBER NODE
+		# EPISODE NODE
         if (!($app_EpisodeNum)){
 			$e_message = "EPISODE_NUMBER node is MISSING !! Building node..."
 			$numWarn++
@@ -1104,82 +1069,6 @@ Foreach ($line in $contents){
 		}
 				
 		#### NODE Check Stop #####
-		
-		# check Series_Id
-		# case sensitive NAME check
-		if(!($app_SeriesID.name -ceq "Series_Id")) {
-			$app_SeriesID.name="Series_Id"
-			$e_message = "[Series_Id] Improper Alpha-Case found. Changed element name to $($app_SeriesID.name)"
-			Write-Debug($e_message)
-			Write-Log $xml_filename "i" "$($e_message)"
-		}
-		
-		
-		# check EPISODE_ID
-		# case sensitive NAME check
-		if($app_EpisodeID -AND (!($app_EpisodeID.name -ceq "Episode_Id"))) {
-			$app_EpisodeID.name="Episode_Id"
-			$e_message = "[Episode_Id] Improper Alpha-Case found. Changed element name to $($app_EpisodeID.name)"
-			Write-Debug($e_message)
-			Write-Log $xml_filename "i" "$($e_message)"
-		}
-		
-		# check for IsSubscription node/element
-        if(!($app_IsSubscription)){
-            Write-Debug "[IsSuscription] element/node is MISSING!"
-        } else {
-			Write-Debug "[IsSuscription] element/node FOUND!"
-            Write-Debug $app_IsSubscription.Name
-            Write-Debug $app_IsSubscription.Value
-            Write-Debug $app_IsSubscription.App
-        }
-
-
-		# check & set value of Series_Id
-		if ($app_IsSubscription.value -eq "Y")
-		{
-			Write-Debug("[Series_Id & Episode_Id] IsSubscription set to $($app_IsSubscription.value).")
-			# if its an HBO show, dont prepend "Sub_" to Series_Id value
-			Switch ($app_SubscriptionType.value)
-			{
-				"MSV_HBO"	{
-								$e_message = "[Series_Id] Found MSV_HBO for $($app_SubscriptionType.name)"
-								Write-Debug($e_message)
-								Write-Log $xml_filename "i" "$($e_message)"
-								
-								if(isNull($app_SeriesID.value)) {
-									$e_message = "[Series_Id] is EMPTY. Setting value to $($app_SeriesName.value)"
-									Write-Debug($e_message)
-									Write-Log $xml_filename "w" "$($e_message)"
-									$numWarn++
-									$app_SeriesID.value = $app_SeriesName.value
-								}
-				}
-				default		{
-								$e_message = "[Series_Id] Found $($app_SubscriptionType.value) for $($app_SubscriptionType.name)"
-								Write-Debug($e_message)
-								Write-Log $xml_filename "i" "$($e_message)"
-								
-								if(isNull($app_SeriesID.value)) {
-									$e_message = "[Series_Id] is EMPTY. Setting value to Sub_$($app_SeriesName.value)"
-									$app_SeriesID.value = "Sub_" + $app_SeriesName.value
-								} else {
-									$e_message = "[Series_Id] Setting value to Sub_$($app_SeriesID.value)"
-									$app_SeriesID.value = "Sub_" + $app_SeriesID.value
-								}
-								
-								Write-Debug($e_message)
-								Write-Log $xml_filename "w" "$($e_message)"
-								$numWarn++
-				}
-			}
-		
-		} else {
-			$e_message = "[Series_Id & Episode_Id] IsSubscription set to $($app_IsSubscription.value)."
-			Write-Debug($e_message)
-			Write-Log $xml_filename "W" "$($e_message)"
-			$numWarn++
-		}
 		
 		Write-Debug ("[TITLE_BRIEF node] checking Title_Brief...")
 		
