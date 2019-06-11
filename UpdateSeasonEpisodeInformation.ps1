@@ -16,7 +16,7 @@
 #
 # Name:     updateSeasonEpisodeInformation.ps1
 # Authors:  James Griffith
-# Version:  1.10.3.1
+# Version:  1.10.3.1T
 #
 ####################################################################
 #
@@ -38,11 +38,24 @@
 #$libPath = "C:\Users\jgg049\Documents\VZ3 TVE\VOD\Alt_Code_Proj\"
 #$SQLServer = 'MSVTXCAWDPV01.vhe.fiosprod.net\MSVPRD01'
 
+# ## User Input ## #
 # Write-Debug -- debug mode
-# uncomment preference to turn on/off output
-$DebugPreference = "SilentlyContinue"
-#$DebugPreference = "Continue"
-Write-Debug("DEBUG ACTIVE!")
+$vDebugInput = Read-Host -Prompt "Activate Debugging? [Y/N]"
+
+switch ($vDebugInput){
+    "Y" {   $DebugPreference = "Continue"
+            Write-Debug("DEBUG ACTIVE!")
+            Break;
+	}
+    "N" {   $DebugPreference = "SilentlyContinue"
+            Write-Host "Doing my thing ... quietly..." -ForegroundColor Gray
+            Break;
+	}
+    Default {
+		Write-Host "Wrong input. EXITING..." -ForegroundColor Red
+		Exit;
+	}
+}
 
 # set environment variables
 if($DebugPreference -eq "Continue"){
@@ -52,6 +65,12 @@ if($DebugPreference -eq "Continue"){
     $work_dir = "C:\vodscripts\_UpdateSeasonEpisode\"
     $input_txt_file = "C:\vodscripts\assetid_filelist.inc"
 }
+
+Write-Host ""
+Write-Host "Working directory: $($work_dir)"
+Write-Host "Using INPUT FILE: $(Get-ChildItem $input_txt_file -Name)"
+Write-host ""
+
 
 # set the directories we will be working in
 $daily_directory = (Get-Date).ToString('MMddyyyy') 
@@ -93,8 +112,7 @@ $numTypeDate = 0
 $numByProvider = 0
 
 
-### FUNCTIONS ###
-
+# ## FUNCTION START ## #
 
 function Get-SeasonEpisode($stringToCheck) {
 	# take given string and run against REGEX to find Season Number and
@@ -674,6 +692,7 @@ if (!(Test-Path -Path $provDict -PathType leaf)){
 
 # ## User Input ## #
 # This will decide which functions to run to get our season and episode data
+Write-Host ""
 Write-Host "Please choose one option below to continue."
 Write-Host "     [A] - by Category"
 Write-Host "     [B] - by Provider"
