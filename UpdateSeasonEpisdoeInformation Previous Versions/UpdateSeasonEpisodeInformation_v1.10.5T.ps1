@@ -16,7 +16,7 @@
 #
 # Name:     updateSeasonEpisodeInformation.ps1
 # Authors:  James Griffith
-# Version:  1.10.5
+# Version:  1.10.5T
 #
 ####################################################################
 #
@@ -1139,6 +1139,16 @@ Foreach ($line in $contents){
 		if ($app_IsSubscription.value -eq "Y")
 		{
 			Write-Debug("[Series_Id & Episode_Id] IsSubscription set to $($app_IsSubscription.value).")
+			
+			#check for 'Sub_' at the beginning of the string
+			if ($app_SeriesID.value -like "Sub_*"){
+				$e_message = "[Series_Id] Already contains 'SUB_'. Not changing value. $($app_SeriesID.value)"
+				Write-Debug $e_message
+				Write-Log $xml_filename "I" $e_message
+				Break;
+			}
+			
+			
 			# if its an HBO show, dont prepend "Sub_" to Series_Id value
 			Switch ($app_SubscriptionType.value)
 			{
