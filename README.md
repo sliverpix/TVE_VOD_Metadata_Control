@@ -50,7 +50,7 @@ __Description__:
 
  Authors: | James Griffith
  -------- | ---------------
- __Version:__ | __1.10.4__
+ __Version:__ | __1.10.3.1__
  
  This script downloads / pulls ADI files out of the DB for correction to SEASON and Season_ID, EPISODE_NUM and EPISODE_ID, Checks for necessary  element nodes in the metadata and creates/changes values to those elements/nodes.. ONLY HLS title types are checked. If the element/nodes are not present in the original XML we will build them and populate them. XML files are saved to ORIGINAL and MODIFIED folders to maintain the integrity of our library. We target HLS formats in both HD and SD and set values based on TITLE or Title_Brief value. If these dont exist we break out, log it and and notify the user.
 
@@ -119,3 +119,8 @@ __History:__:
 	* Add Logic to set empty values of Series_Id to Series_Name value
 	* Add Logic to prepend pre-pend "Sub_" to Series_Id values if isSubscription node is "Y"
 	* Add Logic for HBO Shows, NOT TO pre-pend to Series_Id value. This avoids perpetual issue where the application code would create a "Sub_Sub_" prepend value.
+* 06-11-2019	- (1.10.3.1) Reverted to base 1.10.3 and added the following
+	* Alpha-Case "name" check for Series_Id and EPISODE_ID
+	* Add new Season/Episode type-match 1_1 "S##:E###" (Ex: S13:E17).
+	* Add debugging switch (y/n) user input. Target working directory and target asset file list will change depending on option taken. Defaults to EXIT if not "y" or "n"
+	* REMOVE all logic that touches prepending "Sub_"
