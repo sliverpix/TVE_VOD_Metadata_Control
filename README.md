@@ -124,3 +124,4 @@ __History:__:
 	* Add new Season/Episode type-match 1_1 "S##:E###" (Ex: S13:E17).
 	* Add debugging switch (y/n) user input. Target working directory and target asset file list will change depending on option taken. Defaults to EXIT if not "y" or "n"
 	* REMOVE all logic that touches prepending "Sub_"
+* 06-25-2019	- (1.10.3.1) remove "BREAK" statement that was causing the script to stop processing the asset ID list -IF- there was no return from our query. By removing this statement, we allow the second ForEach loop to check and process any return(s) in the dataset. Due to the nature of the loop, if there is no data returned, then the loop does not execute and control is returned to the first ForEach and it cycles to the next asset ID number in the lsit. No change made to the version number as only a single word statement is removed.
