@@ -32,6 +32,11 @@
 #
 ####################################################################
 
+# ### LOCAL TESTING ###
+#$input_txt_file = "C:\Users\jgg049\Documents\VZ3 TVE\VOD\Alt_Code_Proj\assetid_filelist.inc"
+#$work_dir = "C:\Users\jgg049\Documents\VZ3 TVE\VOD\Alt_Code_Proj\_UpdateSeasonEpisode\"
+#$libPath = "C:\Users\jgg049\Documents\VZ3 TVE\VOD\Alt_Code_Proj\"
+#$SQLServer = 'MSVTXCAWDPV01.vhe.fiosprod.net\MSVPRD01'
 
 # ## User Input ## #
 # Write-Debug -- debug mode
