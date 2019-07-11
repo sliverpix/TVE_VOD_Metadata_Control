@@ -596,7 +596,7 @@ function Get-SeasonEpisodebyProvider{
 	} else {
 		# split our category display to check it against the provider file
 		$catSplit = $app_CategoryDisplay.Value -split ","
-        Write-Debug("[Get-SeasonEpisodebyProvider] Category Display has $($catSplit.length) values")
+        Write-Debug("[Get-SeasonEpisodebyProvider] Category_Display has $($catSplit.length) values")
 	}
 	
 	# check if our provider.csv contains anything from
@@ -1014,11 +1014,15 @@ Foreach ($line in $contents){
 			$app_elem = $content.CreateElement("App_Data")
 			$app_elem.SetAttribute("App","$($AMS_product)")
 			$app_elem.SetAttribute("Name","Series_Id")
-			$app_elem.SetAttribute("Value","")	
+			$app_elem.SetAttribute("Value",$app_SeriesName.Value)	
 			$app_SeriesID = $content.ADI.Asset.Metadata.AppendChild($app_elem)
 			Write-Log $xml_filename "w" " Finished building Series_Id node. It is empty currently."
 			Write-Host ("[Series_Id] element built. Value is currently EMPTY.") -ForegroundColor Green
 		
+		}
+
+		if(!(IsNull($app_SeriesID.value){
+			$app_SeriesID.Value = cleanUp($app_SeriesID.value)
 		}
 		
 
