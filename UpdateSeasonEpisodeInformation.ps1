@@ -1021,7 +1021,7 @@ Foreach ($line in $contents){
 		
 		}
 
-		if(!(IsNull($app_SeriesID.value){
+		if(!(IsNull($app_SeriesID.value))){
 			$app_SeriesID.Value = cleanUp($app_SeriesID.value)
 		}
 		
