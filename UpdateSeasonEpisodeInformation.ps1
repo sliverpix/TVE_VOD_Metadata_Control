@@ -107,28 +107,7 @@ $numType8 = 0
 $numTypeDate = 0
 $numByProvider = 0
 
-# ## USER INPUT QUERRIES ## #
 
-# will be using SUB_ processing?
-$vSubInput = Read-Host -Prompt "Process for SUB_ pre-pending? [Y/N]"
-$vSubProcessing = 0	# check this switch later for SUB_ processing 0/1 = N/Y
-
-switch ($vSubInput){
-    "Y" {   $vSubProcessing = 1
-            Write-Debug("SUB_ Processing ACTIVE!")
-			write-log $xml_filename "I" "SUB_ processing selected and flag set$($vSubProcessing)"
-            Break;
-	}
-    "N" {   $vSubProcessing = 0
-            Write-Host "SUB_ will not be processed." -ForegroundColor Gray
-			Write-Log
-            Break;
-	}
-    Default {
-		Write-Host "Wrong input. EXITING..." -ForegroundColor Red
-		Exit;
-	}
-}
 
 # ## FUNCTION START ## #
 
@@ -707,8 +686,32 @@ if (!(Test-Path -Path $provDict -PathType leaf)){
 	$providerDict = Import-Csv $provDict -Delimiter ":"
 }
 
+##########################################
+# ##### 	USER INPUT QUERRIES 	#### #
+##########################################
 
-# ## User Input ## #
+# will be using SUB_ processing?
+$vSubInput = Read-Host -Prompt "Process for SUB_ pre-pending? [Y/N]"
+$vSubProcessing = 0	# check this switch later for SUB_ processing 0/1 = N/Y
+
+switch ($vSubInput){
+    "Y" {   $vSubProcessing = 1
+            Write-Debug("SUB_ Processing ACTIVE!")
+			write-log $xml_filename "I" "SUB_ processing selected and flag set$($vSubProcessing)"
+            Break;
+	}
+    "N" {   $vSubProcessing = 0
+            Write-Host "SUB_ will not be processed." -ForegroundColor Gray
+			Write-Log
+            Break;
+	}
+    Default {
+		Write-Host "Wrong input. EXITING..." -ForegroundColor Red
+		Exit;
+	}
+}
+
+
 # This will decide which functions to run to get our season and episode data
 Write-Host ""
 Write-Host "Please choose one option below to continue."
