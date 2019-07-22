@@ -50,7 +50,7 @@ __Description__:
 
  Authors: | James Griffith
  -------- | ---------------
- __Version:__ | __1.10.6__
+ __Version:__ | __1.11T__
  
  This script downloads / pulls ADI files out of the DB for correction to SEASON and Season_ID, EPISODE_NUM and EPISODE_ID, Checks for necessary  element nodes in the metadata and creates/changes values to those elements/nodes.. ONLY HLS title types are checked. If the element/nodes are not present in the original XML we will build them and populate them. XML files are saved to ORIGINAL and MODIFIED folders to maintain the integrity of our library. We target HLS formats in both HD and SD and set values based on TITLE or Title_Brief value. If these dont exist we break out, log it and and notify the user.
 
@@ -126,3 +126,5 @@ __History:__:
 	* REMOVE all logic that touches prepending "Sub_"
 * 06-25-2019	- (1.10.3.1) remove "BREAK" statement that was causing the script to stop processing the asset ID list -IF- there was no return from our query. By removing this statement, we allow the second ForEach loop to check and process any return(s) in the dataset. Due to the nature of the loop, if there is no data returned, then the loop does not execute and control is returned to the first ForEach and it cycles to the next asset ID number in the lsit. No change made to the version number as only a single word statement is removed.
 * 07-11-2019	- (1.10.6) Add cleanUp() to SERIES ID and logic to set SeiriesID.value to seriesName.value in some cases.
+* 07-19-2019	- (1.11T) Uncomment SUB_ processing in code and add user input. User can choose to turn on SUB_ processing. (may remove in the future but for now its a choice)
+				- Include REALITY check code. Currently commented out, and needs more testing.
