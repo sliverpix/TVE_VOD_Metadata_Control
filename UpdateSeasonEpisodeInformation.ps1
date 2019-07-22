@@ -16,7 +16,7 @@
 #
 # Name:     updateSeasonEpisodeInformation.ps1
 # Authors:  James Griffith
-# Version:  1.10.6
+# Version:  1.11T
 #
 ####################################################################
 #
@@ -51,6 +51,7 @@ switch ($vDebugInput){
 		Exit;
 	}
 }
+
 
 # set environment variables
 if($DebugPreference -eq "Continue"){
@@ -105,6 +106,7 @@ $numType7 = 0
 $numType8 = 0
 $numTypeDate = 0
 $numByProvider = 0
+
 
 
 # ## FUNCTION START ## #
@@ -684,8 +686,32 @@ if (!(Test-Path -Path $provDict -PathType leaf)){
 	$providerDict = Import-Csv $provDict -Delimiter ":"
 }
 
+##########################################
+# ##### 	USER INPUT QUERRIES 	#### #
+##########################################
 
-# ## User Input ## #
+# will be using SUB_ processing?
+$vSubInput = Read-Host -Prompt "Process for SUB_ pre-pending? [Y/N]"
+$vSubProcessing = 0	# check this switch later for SUB_ processing 0/1 = N/Y
+
+switch ($vSubInput){
+    "Y" {   $vSubProcessing = 1
+            Write-Debug("SUB_ Processing ACTIVE!")
+			write-log $xml_filename "I" "SUB_ processing selected and flag set$($vSubProcessing)"
+            Break;
+	}
+    "N" {   $vSubProcessing = 0
+            Write-Host "SUB_ will not be processed." -ForegroundColor Gray
+			Write-Log
+            Break;
+	}
+    Default {
+		Write-Host "Wrong input. EXITING..." -ForegroundColor Red
+		Exit;
+	}
+}
+
+
 # This will decide which functions to run to get our season and episode data
 Write-Host ""
 Write-Host "Please choose one option below to continue."
@@ -843,6 +869,8 @@ Foreach ($line in $contents){
 		$app_RatingMPAA = ($class_title.App_Data | Where-Object {$_.Name -eq "Rating_MPAA"})
 		$app_SubscriptionType = ($class_title.App_Data | Where-Object {$_.Name -eq "Subscription_type"})
 		$app_IsSubscription = ($class_title.App_Data | Where-Object {$_.Name -eq "IsSubscription"})
+        $app_Genre = ($class_title.App_Data | Where-Object {$_.Name -eq "Genre"})
+        $app_GenreDisplay = ($class_title.App_Data | Where-Object {$_.Name -eq "Genre_Display"})
 		
 
 		### START LOGIC ###
@@ -1154,58 +1182,70 @@ Foreach ($line in $contents){
             Write-Debug $app_IsSubscription.App
         }
 
-<# Remove for now - isolated on 1.10.5T Branch
-		# check & set value of Series_Id
-		if ($app_IsSubscription.value -eq "Y")
-		{
-			Write-Debug("[Series_Id & Episode_Id] IsSubscription set to $($app_IsSubscription.value).")
-			# if its an HBO show, dont prepend "Sub_" to Series_Id value
-			Switch ($app_SubscriptionType.value)
+
+		# ### SUB_ processing ### #
+		if($vSubProcessing -eq 1){
+			$e_message = "[SUB_ Processing] switch set ... processing started"
+			Write-Debug($e_message)
+			Write-Log $xml_filename "I" $e_message
+			
+			# check & set value of Series_Id
+			if ($app_IsSubscription.value -eq "Y")
 			{
-				"MSV_HBO"	{
-								$e_message = "[Series_Id] Found MSV_HBO for $($app_SubscriptionType.name)"
-								Write-Debug($e_message)
-								Write-Log $xml_filename "i" "$($e_message)"
-								
-								if(isNull($app_SeriesID.value)) {
-									$e_message = "[Series_Id] is EMPTY. Setting value to $($app_SeriesName.value)"
+				Write-Debug("[Series_Id & Episode_Id] IsSubscription set to $($app_IsSubscription.value).")
+				# if its an HBO show, dont prepend "Sub_" to Series_Id value
+				Switch ($app_SubscriptionType.value)
+				{
+					"MSV_HBO"	{
+									$e_message = "[Series_Id] Found MSV_HBO for $($app_SubscriptionType.name)"
+									Write-Debug($e_message)
+									Write-Log $xml_filename "i" "$($e_message)"
+									
+									if(isNull($app_SeriesID.value)) {
+										$e_message = "[Series_Id] is EMPTY. Setting value to $($app_SeriesName.value)"
+										Write-Debug($e_message)
+										Write-Log $xml_filename "w" "$($e_message)"
+										$numWarn++
+										$app_SeriesID.value = $app_SeriesName.value
+									}
+					}
+					default		{
+									$e_message = "[Series_Id] Found $($app_SubscriptionType.value) for $($app_SubscriptionType.name)"
+									Write-Debug($e_message)
+									Write-Log $xml_filename "i" "$($e_message)"
+									
+									if(isNull($app_SeriesID.value)) {
+										$e_message = "[Series_Id] is EMPTY. Setting value to Sub_$($app_SeriesName.value)"
+										$app_SeriesID.value = "Sub_" + $app_SeriesName.value
+									} else {
+										$e_message = "[Series_Id] Setting value to Sub_$($app_SeriesID.value)"
+										$app_SeriesID.value = "Sub_" + $app_SeriesID.value
+									}
+									
 									Write-Debug($e_message)
 									Write-Log $xml_filename "w" "$($e_message)"
 									$numWarn++
-									$app_SeriesID.value = $app_SeriesName.value
-								}
+					}
 				}
-				default		{
-								$e_message = "[Series_Id] Found $($app_SubscriptionType.value) for $($app_SubscriptionType.name)"
-								Write-Debug($e_message)
-								Write-Log $xml_filename "i" "$($e_message)"
-								
-								if(isNull($app_SeriesID.value)) {
-									$e_message = "[Series_Id] is EMPTY. Setting value to Sub_$($app_SeriesName.value)"
-									$app_SeriesID.value = "Sub_" + $app_SeriesName.value
-								} else {
-									$e_message = "[Series_Id] Setting value to Sub_$($app_SeriesID.value)"
-									$app_SeriesID.value = "Sub_" + $app_SeriesID.value
-								}
-								
-								Write-Debug($e_message)
-								Write-Log $xml_filename "w" "$($e_message)"
-								$numWarn++
-				}
+			
+			} else {
+				$e_message = "[Series_Id & Episode_Id] IsSubscription set to $($app_IsSubscription.value)."
+				Write-Debug($e_message)
+				Write-Log $xml_filename "W" "$($e_message)"
+				$numWarn++
 			}
-		
 		} else {
-			$e_message = "[Series_Id & Episode_Id] IsSubscription set to $($app_IsSubscription.value)."
+			# SUB_ Processing Declined
+			$e_message = "[SUB_ Processing] switch unset ... processing DECLINED"
 			Write-Debug($e_message)
-			Write-Log $xml_filename "W" "$($e_message)"
-			$numWarn++
+			Write-Log $xml_filename "I" $e_message
 		}
-#>
-		Write-Debug ("[TITLE_BRIEF node] checking Title_Brief...")
+
+		
 		
 		# check Title_brief element. If empty/missing/not set.. check the Episode_Name element...
 		# if neither has value/str... then its messed up, so BREAK OUT
-		
+		Write-Debug ("[TITLE_BRIEF node] checking Title_Brief...")
 		if (IsNull($app_TitleBrief.value)){
 			$e_message = "[TITLE_BRIEF node]Title_Brief is not set!"
 			$script:numError++
@@ -1258,7 +1298,89 @@ Foreach ($line in $contents){
             Write-Host("[TITLE_BRIEF node] Finished cleaning: $($app_TitleBrief.Value)")
 		}
 
+<# REALITY CHECK - commenting out for NOW but its ready
+		# Check for REALITY genre or match on a REALITY provider
+        # 07-18-2019 we do not have a list put together for REALITY providers. Will add this in
+        # once we get this put together
+        Write-Debug("[REALITY CHECK] Checking GENRE elements ...")
+        $isReality = 0     # set the flag 0/1 if 1 process byProvider as a REALITY TVS during EXTRAPOLATION
+        
+        # check the GENRE element first
+        if(!($app_Genre)){
+            Write-debug("[GENRE] node NOT FOUND!")
+			write-log $xml_filename "W" "[GENRE] node NOT FOUND!"
+        } else {
+            if($app_Genre.length -lt 1){
+                $e_message = "[GENRE] Single GENRE element found with value $($app_Genre.Value)"
+                Write-Debug $e_message
+                Write-Log $xml_filename "i" $e_message
+
+				# set reality flag
+				if($app_Genre.value -eq "Reality"){
+					$isReality=1
+					Write-Debug("[GENRE - Single Element] REALITY value found. Flag set.")
+				}
+            } else {
+				$e_message = "[GENRE] Muiltiple GENRE elements!... cycling..."
+                Write-Debug($e_message)
+				Write-Log $xml_filename "I" $e_message
+				
+				# cycle the array
+                foreach($item in $app_Genre){
+                    Write-Debug $item.value
+					
+					# set and check flag
+					if($item.value -eq "Reality"){
+						$e_message = "[GENRE - multi Element] REALITY value found. Flag set."
+						Write-Debug($e_message)
+						Write-Log $xml_filename "I" $e_message
+						$isReality=1
+					}
+                }
+            }
+        }
+
+        # split and check the GENRE_DISPLAY element next
+        if(!($app_GenreDisplay)){
+			$e_message = "[GENRE_DISPLAY] node NOT FOUND!"
+            Write-debug(e_message)
+			write-log $xml_filename "W" $e_message
+        } else {
+            $e_message = "[GENRE_DISPLAY] Node found. Spliting value..."
+			$arrGenreDisplay = $app_GenreDisplay.value.split(",")
+			
+			foreach($itemVal in $arrGenreDisplay){
+				write-debug($itemVal)
+				write-log $xml_filename "I" $itemVal
+				
+				if($itemVal -eq "Reality"){
+					$e_message = "[GENRE_DISPLAY - split] Found REALITY value in Genre_Display string."
+					write-debug $e_message
+					write-log $xml_filename "I" $e_message
+					
+					# set our flag
+					$isReality = 1
+					$e_message = "[GENRE_DISPLAY - split] isReality flag set: $($isReality)"
+					write-debug ($e_message)
+					write-log $xml_filename "I" $e_message
+				}
+			}
+        }
 		
+		# final check and set vprocessBy to B-PATH (ie "byProvider")
+		if($isReality -ne 0){
+			$e_message = "[REALITY check] Reality value found. isReality flag set to $($isReality)"
+			write-Host $e_message
+			write-log $xml_filename "I" $e_message
+			
+			$vprocessBy = "byProvider"
+			
+			$e_message = "[REALITY check] Setting 'B' path for Extrapolation. (ie: by Provider)"
+			Write-Host $e_message -foregroundcolor yellow
+			write-log $xml_filename "I" $e_message
+		}
+#> # REALITY CHECK suppressed/END
+
 		# check for season/episode matches and extrapolate
 		write-debug("[EXTRAPOLATION] Attempting to find Season/Episode in TITLE_Brief node...")
 		Switch ($vprocessBy){
