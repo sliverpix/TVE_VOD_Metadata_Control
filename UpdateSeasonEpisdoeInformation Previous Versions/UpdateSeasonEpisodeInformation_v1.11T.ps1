@@ -16,7 +16,7 @@
 #
 # Name:     updateSeasonEpisodeInformation.ps1
 # Authors:  James Griffith
-# Version:  1.11.1T
+# Version:  1.11T
 #
 ####################################################################
 #
@@ -1302,52 +1302,58 @@ Foreach ($line in $contents){
 		# Check for REALITY genre or match on a REALITY provider
         # 07-18-2019 we do not have a list put together for REALITY providers. Will add this in
         # once we get this put together
-
         Write-Debug("[REALITY CHECK] Checking GENRE elements ...")
-        $isReality = 0     # set the flag 0/1 if 1, process byProvider as a REALITY TVS during EXTRAPOLATION
+        $isReality = 0     # set the flag 0/1 if 1 process byProvider as a REALITY TVS during EXTRAPOLATION
         
         # check the GENRE element first
         if(!($app_Genre)){
             Write-debug("[GENRE] node NOT FOUND!")
 			write-log $xml_filename "W" "[GENRE] node NOT FOUND!"
         } else {
-        	$e_message = "[GENRE] element found ... cycling..."
-            Write-Debug($e_message)
-			Write-Log $xml_filename "I" $e_message
-				
-			# cycle the array
-            foreach($item in $app_Genre){
-                Write-Debug $item.value
-                Write-Log $xml_filename "I" $item.Value
-					
-			    # set and check flag
-				if($item.value -eq "Reality"){
-					$e_message = "[GENRE] REALITY value found. Flag set."
-					Write-Debug($e_message)
-					Write-Log $xml_filename "I" $e_message
+            if($app_Genre.length -lt 1){
+                $e_message = "[GENRE] Single GENRE element found with value $($app_Genre.Value)"
+                Write-Debug $e_message
+                Write-Log $xml_filename "i" $e_message
+
+				# set reality flag
+				if($app_Genre.value -eq "Reality"){
 					$isReality=1
+					Write-Debug("[GENRE - Single Element] REALITY value found. Flag set.")
 				}
+            } else {
+				$e_message = "[GENRE] Muiltiple GENRE elements!... cycling..."
+                Write-Debug($e_message)
+				Write-Log $xml_filename "I" $e_message
+				
+				# cycle the array
+                foreach($item in $app_Genre){
+                    Write-Debug $item.value
+					
+					# set and check flag
+					if($item.value -eq "Reality"){
+						$e_message = "[GENRE - multi Element] REALITY value found. Flag set."
+						Write-Debug($e_message)
+						Write-Log $xml_filename "I" $e_message
+						$isReality=1
+					}
+                }
             }
         }
 
         # split and check the GENRE_DISPLAY element next
         if(!($app_GenreDisplay)){
 			$e_message = "[GENRE_DISPLAY] node NOT FOUND!"
-            Write-debug($e_message)
+            Write-debug(e_message)
 			write-log $xml_filename "W" $e_message
         } else {
             $e_message = "[GENRE_DISPLAY] Node found. Spliting value..."
-            Write-Debug ($e_message)
-            Write-Log $xml_filename "I" $e_message
-
-            # split Genre_Display value into an array
 			$arrGenreDisplay = $app_GenreDisplay.value.split(",")
 			
 			foreach($itemVal in $arrGenreDisplay){
 				write-debug($itemVal)
 				write-log $xml_filename "I" $itemVal
 				
-				if($itemVal -like "*Reality*"){
+				if($itemVal -eq "Reality"){
 					$e_message = "[GENRE_DISPLAY - split] Found REALITY value in Genre_Display string."
 					write-debug $e_message
 					write-log $xml_filename "I" $e_message
@@ -1364,11 +1370,9 @@ Foreach ($line in $contents){
 		# final check and set vprocessBy to B-PATH (ie "byProvider")
 		if($isReality -ne 0){
 			$e_message = "[REALITY check] Reality value found. isReality flag set to $($isReality)"
-			write-Host $e_message -ForegroundColor Green
+			write-Host $e_message
 			write-log $xml_filename "I" $e_message
 			
-            # set/change the input variable to call "byProvider" function
-            # this will over ride the user input if "byCategory" was selected
 			$vprocessBy = "byProvider"
 			
 			$e_message = "[REALITY check] Setting 'B' path for Extrapolation. (ie: by Provider)"
