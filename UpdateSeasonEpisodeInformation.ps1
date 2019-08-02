@@ -16,7 +16,7 @@
 #
 # Name:     updateSeasonEpisodeInformation.ps1
 # Authors:  James Griffith
-# Version:  1.11T
+# Version:  1.12T
 #
 ####################################################################
 #
@@ -636,6 +636,33 @@ function Get-SeasonEpisodebyProvider{
 
 }
 
+# Check-multiElement()
+# check supplied XML from out meta for more than ONE element. Most META elements only need one,
+# but some will always have more than one like "GENRE" or "CATEGORY". We do not need to check 
+# these, but the rest we do. IF we find an improperly formed meta, set it for REVIEW and log it.
+function Check-multiElement {
+	Param(
+	[parameter(Mandatory=$true)]
+	[AllowNull()]
+	[AllowEmptyString()]
+	#[String]
+	$xmlElement	
+	)
+	
+	if($xmlElement.Count -gt 1){
+		$global:isReview = 1
+		$global:numWarn++
+		$e_message = "[Check-multiElement] $($xmlElement[0].name) has $($xmlElement.Count) ELEMENTS."
+		write-log $xml_filename "w" $e_message
+		write-log $xml_filename "w" "Setting for \REVIEW\"
+		Write-Debug $e_message
+	}
+	
+}
+
+
+
+##############################################
 ### check and create direcotries and files ###
 if(!(Test-Path -Path $work_dir)){
     Write-Debug ("cant find working directory .. creating..")
@@ -697,12 +724,12 @@ $vSubProcessing = 0	# check this switch later for SUB_ processing 0/1 = N/Y
 switch ($vSubInput){
     "Y" {   $vSubProcessing = 1
             Write-Debug("SUB_ Processing ACTIVE!")
-			write-log $xml_filename "I" "SUB_ processing selected and flag set$($vSubProcessing)"
+			write-log $xml_filename "I" "SUB_ processing selected and flag set $($vSubProcessing)"
             Break;
 	}
     "N" {   $vSubProcessing = 0
             Write-Host "SUB_ will not be processed." -ForegroundColor Gray
-			Write-Log
+			Write-Log $xml_filename "I" "SUB_ processing NOT selected and flag set $($vSubProcessing)"
             Break;
 	}
     Default {
@@ -740,7 +767,9 @@ if(IsNull ($vprocessBy)){
 }
 
 
-# common MSV DB lines
+####################################
+# ##	common MSV DB lines		## #
+####################################
 $SQLServer = 'MSVTXCAWDPV01\MSVPRD01' #use Server\Instance for named SQL instances! 
 $SQLDBName = 'ProvisioningWorkFlow'
 
@@ -851,24 +880,54 @@ Foreach ($line in $contents){
 		$class_title = $content.ADI.Asset.Metadata
 			#$class_movie = $content.ADI.Asset.Asset		$ dont need this one
 		
-		#child nodes
+		#child nodes and checks
 		$ams_product = ($content.ADI.Metadata.AMS.Product)
+		
 		$app_contentType = ($class_title.App_Data | Where-Object {$_.Name -eq "Content_Type"})
+		Check-multiElement($app_contentType)	# check for multi-element nodes that SHOULD NOT be multi-element
+		
 		$app_TitleBrief = ($class_title.App_Data | Where-Object {$_.Name -eq "Title_Brief"})
+		Check-multiElement($app_TitleBrief)	# check for multi-element nodes that SHOULD NOT be multi-element
+		
 		$app_Title = ($class_title.App_Data | Where-Object {$_.Name -eq "Title"})
+		Check-multiElement($app_Title)	# check for multi-element nodes that SHOULD NOT be multi-element
+		
 		$app_SeriesName = ($class_title.App_Data | Where-Object {$_.Name -eq "Series_Name"})
+		Check-multiElement($app_SeriesName)	# check for multi-element nodes that SHOULD NOT be multi-element
+		
 		$app_SeriesID = ($class_title.App_Data | Where-Object {$_.NAME -eq "Series_ID"})
+		Check-multiElement($app_SeriesID)	# check for multi-element nodes that SHOULD NOT be multi-element
+		
 		$app_SeriesDesc = ($class_title.App_Data | Where-Object {$_.NAME -eq "Series_Description"})
+		Check-multiElement($app_SeriesDesc)	# check for multi-element nodes that SHOULD NOT be multi-element
+		
 		$app_Season = ($class_title.App_Data | Where-Object {$_.Name -eq "Season"})
+		Check-multiElement($app_Season)	# check for multi-element nodes that SHOULD NOT be multi-element
+		
 		$app_SeasonID = ($class_title.App_Data | Where-Object {$_.Name -eq "Season_ID"})
+		Check-multiElement($app_SeasonID)	# check for multi-element nodes that SHOULD NOT be multi-element
+		
 		$app_EpisodeID = ($class_title.App_Data | Where-Object {$_.Name -eq "Episode_ID"})
+		Check-multiElement($app_EpisodeID)	# check for multi-element nodes that SHOULD NOT be multi-element
+		
 		$app_EpisodeNum = ($class_title.App_Data | Where-Object {$_.Name -eq "Episode_Number"})
+		Check-multiElement($app_EpisodeNum)	# check for multi-element nodes that SHOULD NOT be multi-element
+		
 		$app_EpisodeName = ($class_title.App_Data | Where-Object {$_.Name -eq "Episode_Name"})
+		Check-multiElement($app_EpisodeName)	# check for multi-element nodes that SHOULD NOT be multi-element
+		
         $app_Category = ($class_title.App_Data | Where-Object {$_.Name -eq "Category"})
         $app_CategoryDisplay = ($class_title.App_Data | Where-Object {$_.Name -eq "Category_Display"})
+		
 		$app_RatingMPAA = ($class_title.App_Data | Where-Object {$_.Name -eq "Rating_MPAA"})
+		Check-multiElement($app_RatingMPAA)	# check for multi-element nodes that SHOULD NOT be multi-element
+		
 		$app_SubscriptionType = ($class_title.App_Data | Where-Object {$_.Name -eq "Subscription_type"})
+		Check-multiElement($app_SubscriptionType)	# check for multi-element nodes that SHOULD NOT be multi-element
+		
 		$app_IsSubscription = ($class_title.App_Data | Where-Object {$_.Name -eq "IsSubscription"})
+		Check-multiElement($app_IsSubscription)	# check for multi-element nodes that SHOULD NOT be multi-element
+		
         $app_Genre = ($class_title.App_Data | Where-Object {$_.Name -eq "Genre"})
         $app_GenreDisplay = ($class_title.App_Data | Where-Object {$_.Name -eq "Genre_Display"})
 		
@@ -1193,7 +1252,7 @@ Foreach ($line in $contents){
 			if ($app_IsSubscription.value -eq "Y")
 			{
 				Write-Debug("[Series_Id & Episode_Id] IsSubscription set to $($app_IsSubscription.value).")
-				# if its an HBO show, dont prepend "Sub_" to Series_Id value
+				# if its an HBO show, dont prepend "SUB_" to Series_Id value
 				Switch ($app_SubscriptionType.value)
 				{
 					"MSV_HBO"	{
@@ -1208,6 +1267,7 @@ Foreach ($line in $contents){
 										$numWarn++
 										$app_SeriesID.value = $app_SeriesName.value
 									}
+									Break;
 					}
 					default		{
 									$e_message = "[Series_Id] Found $($app_SubscriptionType.value) for $($app_SubscriptionType.name)"
@@ -1215,11 +1275,11 @@ Foreach ($line in $contents){
 									Write-Log $xml_filename "i" "$($e_message)"
 									
 									if(isNull($app_SeriesID.value)) {
-										$e_message = "[Series_Id] is EMPTY. Setting value to Sub_$($app_SeriesName.value)"
-										$app_SeriesID.value = "Sub_" + $app_SeriesName.value
+										$e_message = "[Series_Id] is EMPTY. Setting value to SUB_$($app_SeriesName.value)"
+										$app_SeriesID.value = "SUB_" + $app_SeriesName.value
 									} else {
-										$e_message = "[Series_Id] Setting value to Sub_$($app_SeriesID.value)"
-										$app_SeriesID.value = "Sub_" + $app_SeriesID.value
+										$e_message = "[Series_Id] Setting value to SUB_$($app_SeriesID.value)"
+										$app_SeriesID.value = "SUB_" + $app_SeriesID.value
 									}
 									
 									Write-Debug($e_message)
@@ -1302,58 +1362,52 @@ Foreach ($line in $contents){
 		# Check for REALITY genre or match on a REALITY provider
         # 07-18-2019 we do not have a list put together for REALITY providers. Will add this in
         # once we get this put together
+
         Write-Debug("[REALITY CHECK] Checking GENRE elements ...")
-        $isReality = 0     # set the flag 0/1 if 1 process byProvider as a REALITY TVS during EXTRAPOLATION
+        $isReality = 0     # set the flag 0/1 if 1, process byProvider as a REALITY TVS during EXTRAPOLATION
         
         # check the GENRE element first
         if(!($app_Genre)){
             Write-debug("[GENRE] node NOT FOUND!")
 			write-log $xml_filename "W" "[GENRE] node NOT FOUND!"
         } else {
-            if($app_Genre.length -lt 1){
-                $e_message = "[GENRE] Single GENRE element found with value $($app_Genre.Value)"
-                Write-Debug $e_message
-                Write-Log $xml_filename "i" $e_message
-
-				# set reality flag
-				if($app_Genre.value -eq "Reality"){
-					$isReality=1
-					Write-Debug("[GENRE - Single Element] REALITY value found. Flag set.")
-				}
-            } else {
-				$e_message = "[GENRE] Muiltiple GENRE elements!... cycling..."
-                Write-Debug($e_message)
-				Write-Log $xml_filename "I" $e_message
+        	$e_message = "[GENRE] element found ... cycling..."
+            Write-Debug($e_message)
+			Write-Log $xml_filename "I" $e_message
 				
-				# cycle the array
-                foreach($item in $app_Genre){
-                    Write-Debug $item.value
+			# cycle the array
+            foreach($item in $app_Genre){
+                Write-Debug $item.value
+                Write-Log $xml_filename "I" $item.Value
 					
-					# set and check flag
-					if($item.value -eq "Reality"){
-						$e_message = "[GENRE - multi Element] REALITY value found. Flag set."
-						Write-Debug($e_message)
-						Write-Log $xml_filename "I" $e_message
-						$isReality=1
-					}
-                }
+			    # set and check flag
+				if($item.value -eq "Reality"){
+					$e_message = "[GENRE] REALITY value found. Flag set."
+					Write-Debug($e_message)
+					Write-Log $xml_filename "I" $e_message
+					$isReality=1
+				}
             }
         }
 
         # split and check the GENRE_DISPLAY element next
         if(!($app_GenreDisplay)){
 			$e_message = "[GENRE_DISPLAY] node NOT FOUND!"
-            Write-debug(e_message)
+            Write-debug($e_message)
 			write-log $xml_filename "W" $e_message
         } else {
             $e_message = "[GENRE_DISPLAY] Node found. Spliting value..."
+            Write-Debug ($e_message)
+            Write-Log $xml_filename "I" $e_message
+
+            # split Genre_Display value into an array
 			$arrGenreDisplay = $app_GenreDisplay.value.split(",")
 			
 			foreach($itemVal in $arrGenreDisplay){
 				write-debug($itemVal)
 				write-log $xml_filename "I" $itemVal
 				
-				if($itemVal -eq "Reality"){
+				if($itemVal -like "*Reality*"){
 					$e_message = "[GENRE_DISPLAY - split] Found REALITY value in Genre_Display string."
 					write-debug $e_message
 					write-log $xml_filename "I" $e_message
@@ -1370,9 +1424,11 @@ Foreach ($line in $contents){
 		# final check and set vprocessBy to B-PATH (ie "byProvider")
 		if($isReality -ne 0){
 			$e_message = "[REALITY check] Reality value found. isReality flag set to $($isReality)"
-			write-Host $e_message
+			write-Host $e_message -ForegroundColor Green
 			write-log $xml_filename "I" $e_message
 			
+            # set/change the input variable to call "byProvider" function
+            # this will over ride the user input if "byCategory" was selected
 			$vprocessBy = "byProvider"
 			
 			$e_message = "[REALITY check] Setting 'B' path for Extrapolation. (ie: by Provider)"
@@ -1450,8 +1506,6 @@ Foreach ($line in $contents){
 			# Break out of our code and move to next assetID in list.
 			$script:numRev++
 			$isReview = 1
-			$content.Save($reviewD + "\" + $xml_filename)
-			
 		}
 			
 		# check for TYPE 6 and 7 match.. very loose regex. Extrapolate but inform
@@ -1556,7 +1610,11 @@ Foreach ($line in $contents){
 			$numMod++
 			$content.Save($modifiedD + "\" + $xml_filename)
 		} else {
-			Write-Debug("[EXTRAPOLATION] The isReview Flag is SET! did something break?")
+			Write-Debug("[REVIEW] The isReview Flag is SET! did something break?")
+            $content.Save($reviewD + "\" + $xml_filename)
+            $numRev++
+            Write-Log $xml_filename "E" "[REVIEW] isReview was set. Saving meta to \Review\ directory!"
+
 		}
 	    
         # done processing and moving to next asset
