@@ -636,13 +636,28 @@ function Get-SeasonEpisodebyProvider{
 
 }
 
-
-# Get-ElementCount - check for the number of elements found in the dataXML array
-# if more than one element found, set the $isReview FLAG and Isolate meta file.
-# some elements we expect to have more than a single element, such as 'GENRE' and
-# 'Category' so we wont check these.
-function Get-ElementCount($xmlElement){
-	param()
+# Check-multiElement()
+# check supplied XML from out meta for more than ONE element. Most META elements only need one,
+# but some will always have more than one like "GENRE" or "CATEGORY". We do not need to check 
+# these, but the rest we do. IF we find an improperly formed meta, set it for REVIEW and log it.
+function Check-multiElement {
+	Param(
+	[parameter(Mandatory=$true)]
+	[AllowNull()]
+	[AllowEmptyString()]
+	#[String]
+	$xmlElement	
+	)
+	
+	if($xmlElement.Count -gt 1){
+		$global:isReview = 1
+		$global:numWarn++
+		$e_message = "[Check-multiElement] $($xmlElement[0].name) has $($xmlElement.Count) ELEMENTS."
+		write-log $xml_filename "w" $e_message
+		write-log $xml_filename "w" "Setting for \REVIEW\"
+		Write-Debug $e_message
+	}
+	
 }
 
 
@@ -752,7 +767,9 @@ if(IsNull ($vprocessBy)){
 }
 
 
-# common MSV DB lines
+####################################
+# ##	common MSV DB lines		## #
+####################################
 $SQLServer = 'MSVTXCAWDPV01\MSVPRD01' #use Server\Instance for named SQL instances! 
 $SQLDBName = 'ProvisioningWorkFlow'
 
@@ -863,24 +880,54 @@ Foreach ($line in $contents){
 		$class_title = $content.ADI.Asset.Metadata
 			#$class_movie = $content.ADI.Asset.Asset		$ dont need this one
 		
-		#child nodes
+		#child nodes and checks
 		$ams_product = ($content.ADI.Metadata.AMS.Product)
+		
 		$app_contentType = ($class_title.App_Data | Where-Object {$_.Name -eq "Content_Type"})
+		Check-multiElement($app_contentType)	# check for multi-element nodes that SHOULD NOT be multi-element
+		
 		$app_TitleBrief = ($class_title.App_Data | Where-Object {$_.Name -eq "Title_Brief"})
+		Check-multiElement($app_TitleBrief)	# check for multi-element nodes that SHOULD NOT be multi-element
+		
 		$app_Title = ($class_title.App_Data | Where-Object {$_.Name -eq "Title"})
+		Check-multiElement($app_Title)	# check for multi-element nodes that SHOULD NOT be multi-element
+		
 		$app_SeriesName = ($class_title.App_Data | Where-Object {$_.Name -eq "Series_Name"})
+		Check-multiElement($app_SeriesName)	# check for multi-element nodes that SHOULD NOT be multi-element
+		
 		$app_SeriesID = ($class_title.App_Data | Where-Object {$_.NAME -eq "Series_ID"})
+		Check-multiElement($app_SeriesID)	# check for multi-element nodes that SHOULD NOT be multi-element
+		
 		$app_SeriesDesc = ($class_title.App_Data | Where-Object {$_.NAME -eq "Series_Description"})
+		Check-multiElement($app_SeriesDesc)	# check for multi-element nodes that SHOULD NOT be multi-element
+		
 		$app_Season = ($class_title.App_Data | Where-Object {$_.Name -eq "Season"})
+		Check-multiElement($app_Season)	# check for multi-element nodes that SHOULD NOT be multi-element
+		
 		$app_SeasonID = ($class_title.App_Data | Where-Object {$_.Name -eq "Season_ID"})
+		Check-multiElement($app_SeasonID)	# check for multi-element nodes that SHOULD NOT be multi-element
+		
 		$app_EpisodeID = ($class_title.App_Data | Where-Object {$_.Name -eq "Episode_ID"})
+		Check-multiElement($app_EpisodeID)	# check for multi-element nodes that SHOULD NOT be multi-element
+		
 		$app_EpisodeNum = ($class_title.App_Data | Where-Object {$_.Name -eq "Episode_Number"})
+		Check-multiElement($app_EpisodeNum)	# check for multi-element nodes that SHOULD NOT be multi-element
+		
 		$app_EpisodeName = ($class_title.App_Data | Where-Object {$_.Name -eq "Episode_Name"})
+		Check-multiElement($app_EpisodeName)	# check for multi-element nodes that SHOULD NOT be multi-element
+		
         $app_Category = ($class_title.App_Data | Where-Object {$_.Name -eq "Category"})
         $app_CategoryDisplay = ($class_title.App_Data | Where-Object {$_.Name -eq "Category_Display"})
+		
 		$app_RatingMPAA = ($class_title.App_Data | Where-Object {$_.Name -eq "Rating_MPAA"})
+		Check-multiElement($app_RatingMPAA)	# check for multi-element nodes that SHOULD NOT be multi-element
+		
 		$app_SubscriptionType = ($class_title.App_Data | Where-Object {$_.Name -eq "Subscription_type"})
+		Check-multiElement($app_SubscriptionType)	# check for multi-element nodes that SHOULD NOT be multi-element
+		
 		$app_IsSubscription = ($class_title.App_Data | Where-Object {$_.Name -eq "IsSubscription"})
+		Check-multiElement($app_IsSubscription)	# check for multi-element nodes that SHOULD NOT be multi-element
+		
         $app_Genre = ($class_title.App_Data | Where-Object {$_.Name -eq "Genre"})
         $app_GenreDisplay = ($class_title.App_Data | Where-Object {$_.Name -eq "Genre_Display"})
 		
@@ -1220,6 +1267,7 @@ Foreach ($line in $contents){
 										$numWarn++
 										$app_SeriesID.value = $app_SeriesName.value
 									}
+									Break;
 					}
 					default		{
 									$e_message = "[Series_Id] Found $($app_SubscriptionType.value) for $($app_SubscriptionType.name)"
@@ -1458,8 +1506,6 @@ Foreach ($line in $contents){
 			# Break out of our code and move to next assetID in list.
 			$script:numRev++
 			$isReview = 1
-			$content.Save($reviewD + "\" + $xml_filename)
-			
 		}
 			
 		# check for TYPE 6 and 7 match.. very loose regex. Extrapolate but inform
