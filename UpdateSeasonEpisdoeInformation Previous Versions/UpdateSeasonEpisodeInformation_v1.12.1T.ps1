@@ -382,7 +382,7 @@ function cleanUp($dirtyString, [switch]$isSeries){
 	
 	Write-Debug("[cleanUp] cleanUp rec'd $($dirtyString)")
 	
-	# cleanup any title or string we receive. removes as many varians of "HD" as we know of
+	# cleanup an title or string we receive. removes as many varians of "HD" as we know of
 	# also changes all "_" to spaces to correct title/series names we are receiving with
 	# underscores for spaces. Finally remove any whitespace from beginning/end of our string
 	$dirtyString = $dirtyString.toString()
@@ -666,8 +666,7 @@ function Check-multiElement {
 # Sub_ Processing()
 # take give STRING, trim whitespace and Prepend "Sub_"
 # Return this value after. IF there is already a "Sub_"
-# return false and log the WARNING. If used in conjunction with IsNull()
-# we should be able to catch any/all combinataions of empty/null values.
+# return false and log the WARNING
 function Format-SubProcessing {
     Param(
     [parameter(Mandatory=$true)]
@@ -677,24 +676,18 @@ function Format-SubProcessing {
     )
 
 	# log our actions
-    $e_message = "[Format-SubProcessing] Rec'd $($xmlMetaObj)"
-	Write-Log $xml_filename "I" $e_message
-    Write-Debug $e_message
+	Write-Log $xml_filename "I" "[Format-SubProcessing] Rec'd $($xmlMetaObj)"
 		
 	# Check for value and 'Sub_' ...
     if($xmlMetaObj -notlike "Sub_*"){
+		
 		# prepend Sub_ and return new string and log action
         $xmlMetaObj = "Sub_"+$xmlMetaObj.trim()
-
-        $e_message = "[Format-SubProcessing] Processed and returning $($xmlMetaObj)"
-        Write-Debug $e_message
-		Write-Log $xml_filename "I" $e_message
+		Write-Log $xml_filename "I" "[Format-SubProcessing] Processed and returning $($xmlMetaObj)"
         return $xmlMetaObj
     } else {
 		# 'Sub_' was found so return false and log the action
-        $e_message = "[Format-SubProcessing] 'Sub_' was found in string. Returning FALSE!"
-        Write-Debug $e_message
-		Write-Log $xml_filename "W" $e_message
+		Write-Log $xml_filename "W" "[Format-SubProcessing] 'Sub_' was found in string. Returning FALSE!"
 		$global:numWarn++
         return $false
     }
@@ -1106,19 +1099,16 @@ Foreach ($line in $contents){
 		}
 		
 		# Format-SubProcessing() of Series_Name
-		# be sure IsSubscription is set before using Format-SubProcessing()
-		# if not, set error, log it and set for \Review\
 		if ($app_IsSubscription.value -eq "Y")
 		{
 			$e_message = "[SUB_ Processing - IsSubscription] Set to $($app_IsSubscription.value)"
 			Write-Debug($e_message)
 			Write-Log $xml_filename "I" $e_message
 			
-			# process Format-SubProcessing for Series_Name and set Series_Name.value
+			# process Format-SubProcessing for Series_Name and set Series_ID.value to Series_Name.value
 			if(!(IsNull($app_SeriesName.value))){
-				# the function will log any false returns so no need to process that here.
-				if($strSeriesNameSub = Format-SubProcessing($app_SeriesName.value)){
-					$app_SeriesName.value = $strSeriesNameSub
+				if(){
+				
 				}
 			} else {
 				# Series_Name is empty/null - thats a problem - set of \REVIEW\
@@ -1131,15 +1121,14 @@ Foreach ($line in $contents){
 			
 		} else {
 			# not a SUBSCRIPTION - log the error and set IsReview flag!
-			$e_message = "[SUB_ Processing - IsSubscription] Set to $($app_IsSubscription.value). Setting for \REVIEW\"
+			$e_message = "[SUB_ Processing - IsSubscription] Set to $($app_IsSubscription.value)."
 			Write-Host $e_message -ForegroundColor Red
 			Write-Log $xml_filename "E" "$($e_message)"
 			$numError++
 			$isReview = 1
 		}
 		
-		# SERIES_ID Node check
-		# Set Series_ID value to Series_Name value regardless of current Series_ID value.
+		# SERIES_ID Node
 		# if node does NOT exist build it and set to 'Series_Name' value.
 		if (!($app_SeriesID)){
 			$e_message = "[Series_Id] node is MISSING !! Building node..."
@@ -1156,12 +1145,12 @@ Foreach ($line in $contents){
 			Write-Log $xml_filename "w" " Finished building Series_Id node. Value is $($app_SeriesID.value)."
 			Write-Host ("[Series_Id] element built. Value set to 'Series_Name' value.") -ForegroundColor Green
 		
-		} else {
-			$e_message = "[Series_Id] is present. Setting value to (from Series_Name): $($app_SeriesName.value)"
-			Write-Debug $e_message
-			Write-Log $xml_filename "I" $e_message
-			$app_SeriesID.value = $app_SeriesName.value
 		}
+
+		if(!(IsNull($app_SeriesID.value))){
+			$app_SeriesID.Value = cleanUp($app_SeriesID.value)
+		}
+		
 
 		
 		# SEASON NODE
@@ -1436,14 +1425,12 @@ Foreach ($line in $contents){
 						write-log $xml_filename "w" "$($e_message)"
 						$script:numWarn++
 						write-debug("[EXTRAPOLATION] Checking EPISODE_NAME node ...")
-						
 						if(!($se_array = Get-SeasonEpisode($app_EpisodeName.Value))){
 							$e_message = "[EXTRAPOLATION] Get-SeasonEpisode returned false on EPISODE_NAME string: $($app_EpisodeName.Value)"
 							write-debug($e_message)
 							write-log $xml_filename "w" "$($e_message)"
 							$script:numWarn++
 							write-debug("[EXTRAPOLATION] checking TITLE node ...")
-							
 							if(!($se_array = Get-SeasonEpisode($app_Title.value))){
 								$e_message = "[EXTRAPOLATION] Get-SeasonEpisode returned false on TITLE string: $($app_Title.value)"
 								write-debug($e_message)
@@ -1514,8 +1501,8 @@ Foreach ($line in $contents){
 					$llevel = "W"
 
 					#$app_EpisodeID.value = $exEpisode
-					if(IsNull($app_EpisodeNum.value)){$app_EpisodeNum.value = $exEpisode}
-					if(IsNull($app_Season.value)){$app_Season.value = $exSeason}
+					$app_EpisodeNum.value = $exEpisode
+					$app_Season.value = $exSeason
 					#$app_SeasonID.value = $exSeason
 					
 					Write-Host "[EXTRAPOLATION] Done!" -ForegroundColor Green
@@ -1527,8 +1514,8 @@ Foreach ($line in $contents){
 					$llevel = "W"
 					
 					#$app_EpisodeID.value = $exEpisode
-					if(IsNull($app_EpisodeNum.value)){$app_EpisodeNum.value = $exEpisode}
-					if(IsNull($app_Season.value)){$app_Season.value = $exSeason}
+					$app_EpisodeNum.value = $exEpisode
+					$app_Season.value = $exSeason
 					#$app_SeasonID.value = $exSeason
 					
 					Write-Host "[EXTRAPOLATION] Done!" -ForegroundColor Green
@@ -1538,7 +1525,7 @@ Foreach ($line in $contents){
 					# match special case DateType
 					Write-Debug "[EXTRAPOLATION] OUT of Get-SeasonEpisode: Matched DATE TYPE."
 					# set EPISODE_NUMBER
-					if(IsNull($app_EpisodeNum.value)){$app_EpisodeNum.value = $exEpisode}
+					$app_EpisodeNum.value = $exEpisode
                     $e_message = "[EXTRAPOLATION] TYPE $($exTypeMatch) match found."
                     Write-Host $e_message -BackgroundColor DarkGray -ForegroundColor Green 
 		
@@ -1564,8 +1551,8 @@ Foreach ($line in $contents){
                     $e_message ="[EXTRAPOLATION] TYPE $($exTypeMatch) match found."
                     $llevel = "I"
 
-					if(IsNull($app_EpisodeNum.value)){$app_EpisodeNum.value = $exEpisode.ToString()}
-                   	if(IsNull($app_Season.value)){$app_Season.value = $exSeason.ToString()}
+                   	$app_EpisodeNum.value = $exEpisode.ToString()
+					$app_Season.value = $exSeason.ToString()
 					
 					Write-Host $e_message -BackgroundColor DarkGray -ForegroundColor Green
                     Write-Log $xml_filename $llevel $e_message
@@ -1578,8 +1565,8 @@ Foreach ($line in $contents){
 					$llevel = "I"
 					
 					#$app_EpisodeID.value = $exEpisode
-					if(IsNull($app_EpisodeNum.value)){$app_EpisodeNum.value = $exEpisode.ToString()}
-					if(IsNull($app_Season.value)){$app_Season.value = $exSeason.ToString()}
+					$app_EpisodeNum.value = $exEpisode.ToString()
+					$app_Season.value = $exSeason.ToString()
 					#$app_SeasonID.value = $exSeason
 					
 					Write-Host $e_message -BackgroundColor DarkGray -ForegroundColor Green
@@ -1611,10 +1598,8 @@ Foreach ($line in $contents){
         # done processing and moving to next asset
 		if($msvFound -eq 1){
 			Write-Host("Processing complete.")
-            Write-Log $xml_filename "I" "Processing complete."
 		} else {
 			Write-Host("AssetID was not found in MSV!") -ForegroundColor Red
-            Write-Log $xml_filename "E" "AssetID was not found in MSV!"
 		}
 	    
 	}
