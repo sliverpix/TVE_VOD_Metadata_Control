@@ -50,7 +50,7 @@ __Description__:
 
  Authors: | James Griffith
  -------- | ---------------
- __Version:__ | __1.12__
+ __Version:__ | __1.12.1__
  
  This script downloads / pulls ADI files out of the DB for correction to SEASON and Season_ID, EPISODE_NUM and EPISODE_ID, Checks for necessary  element nodes in the metadata and creates/changes values to those elements/nodes.. ONLY HLS title types are checked. If the element/nodes are not present in the original XML we will build them and populate them. XML files are saved to ORIGINAL and MODIFIED folders to maintain the integrity of our library. We target HLS formats in both HD and SD and set values based on TITLE or Title_Brief value. If these dont exist we break out, log it and and notify the user.
 
@@ -129,3 +129,16 @@ __History:__:
 * 07-19-2019	- (1.11T) Uncomment SUB_ processing in code and add user input. User can choose to turn on SUB_ processing. (may remove in the future but for now its a choice)
 				- Include REALITY check code. Currently commented out, and needs more testing.
 * 08-02-2019	- (1.12) Fix bug #23 Multi-Element causing errors: built out new function Check-MultiElement() to look for duplication in some meta XML elements, log them, and set the file for \REVIEW\
+* 08-06-2019	- (1.12.1) Set "Series ID" with "Series Name" value and Sub_processing. basically process series name and prepend “Sub_” (with logic to avoid setting double “sub_” or setting on an empty value) and then set that value to series ID. 
+				- Remove Sub_ Processing user input logic
+				- move/change logic to Format_SubProcessing() under the Series_Name node check.
+				- fix BUG #22: Double-Sub_ in Episode Name
+				- add .Trim() to IsNull
+				- add function Format-SubProcessing()
+				- remove user input for Sub_ processing
+				- remove previous Sub_ processing logic.
+				- address's enhancement/bug #26
+				- finish adding logic to Series_Name for Format-SubProcessing() logic
+				- cleanup/remove old Series_ID logic and set its value to Series_Name regardless of current SeriesID value.
+				- A-Path (byCategory) - Enhancement #26
+

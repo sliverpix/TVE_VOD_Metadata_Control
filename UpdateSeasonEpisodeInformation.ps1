@@ -663,9 +663,9 @@ function Check-multiElement {
 	
 }
 
-# Sub_ Processing()
-# take give STRING, trim whitespace and Prepend "Sub_"
-# Return this value after. IF there is already a "Sub_"
+# SUB_ Processing()
+# take give STRING, trim whitespace and Prepend "SUB_"
+# Return this value after. IF there is already a "SUB_"
 # return false and log the WARNING. If used in conjunction with IsNull()
 # we should be able to catch any/all combinataions of empty/null values.
 function Format-SubProcessing {
@@ -681,18 +681,18 @@ function Format-SubProcessing {
 	Write-Log $xml_filename "I" $e_message
     Write-Debug $e_message
 		
-	# Check for value and 'Sub_' ...
-    if($xmlMetaObj -notlike "Sub_*"){
-		# prepend Sub_ and return new string and log action
-        $xmlMetaObj = "Sub_"+$xmlMetaObj.trim()
+	# Check for value and 'SUB_' ...
+    if($xmlMetaObj -notlike "SUB_*"){
+		# prepend SUB_ and return new string and log action
+        $xmlMetaObj = "SUB_"+$xmlMetaObj.trim()
 
         $e_message = "[Format-SubProcessing] Processed and returning $($xmlMetaObj)"
         Write-Debug $e_message
 		Write-Log $xml_filename "I" $e_message
         return $xmlMetaObj
     } else {
-		# 'Sub_' was found so return false and log the action
-        $e_message = "[Format-SubProcessing] 'Sub_' was found in string. Returning FALSE!"
+		# 'SUB_' was found so return false and log the action
+        $e_message = "[Format-SubProcessing] 'SUB_' was found in string. Returning FALSE!"
         Write-Debug $e_message
 		Write-Log $xml_filename "W" $e_message
 		$global:numWarn++
