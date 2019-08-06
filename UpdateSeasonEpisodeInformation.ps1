@@ -382,7 +382,7 @@ function cleanUp($dirtyString, [switch]$isSeries){
 	
 	Write-Debug("[cleanUp] cleanUp rec'd $($dirtyString)")
 	
-	# cleanup an title or string we receive. removes as many varians of "HD" as we know of
+	# cleanup any title or string we receive. removes as many varians of "HD" as we know of
 	# also changes all "_" to spaces to correct title/series names we are receiving with
 	# underscores for spaces. Finally remove any whitespace from beginning/end of our string
 	$dirtyString = $dirtyString.toString()
@@ -666,7 +666,8 @@ function Check-multiElement {
 # Sub_ Processing()
 # take give STRING, trim whitespace and Prepend "Sub_"
 # Return this value after. IF there is already a "Sub_"
-# return false and log the WARNING
+# return false and log the WARNING. If used in conjunction with IsNull()
+# we should be able to catch any/all combinataions of empty/null values.
 function Format-SubProcessing {
     Param(
     [parameter(Mandatory=$true)]
@@ -1428,12 +1429,14 @@ Foreach ($line in $contents){
 						write-log $xml_filename "w" "$($e_message)"
 						$script:numWarn++
 						write-debug("[EXTRAPOLATION] Checking EPISODE_NAME node ...")
+						
 						if(!($se_array = Get-SeasonEpisode($app_EpisodeName.Value))){
 							$e_message = "[EXTRAPOLATION] Get-SeasonEpisode returned false on EPISODE_NAME string: $($app_EpisodeName.Value)"
 							write-debug($e_message)
 							write-log $xml_filename "w" "$($e_message)"
 							$script:numWarn++
 							write-debug("[EXTRAPOLATION] checking TITLE node ...")
+							
 							if(!($se_array = Get-SeasonEpisode($app_Title.value))){
 								$e_message = "[EXTRAPOLATION] Get-SeasonEpisode returned false on TITLE string: $($app_Title.value)"
 								write-debug($e_message)
@@ -1504,8 +1507,8 @@ Foreach ($line in $contents){
 					$llevel = "W"
 
 					#$app_EpisodeID.value = $exEpisode
-					$app_EpisodeNum.value = $exEpisode
-					$app_Season.value = $exSeason
+					if(IsNull($app_EpisodeNum.value)){$app_EpisodeNum.value = $exEpisode}
+					if(IsNull($app_Season.value)){$app_Season.value = $exSeason}
 					#$app_SeasonID.value = $exSeason
 					
 					Write-Host "[EXTRAPOLATION] Done!" -ForegroundColor Green
@@ -1517,8 +1520,8 @@ Foreach ($line in $contents){
 					$llevel = "W"
 					
 					#$app_EpisodeID.value = $exEpisode
-					$app_EpisodeNum.value = $exEpisode
-					$app_Season.value = $exSeason
+					if(IsNull($app_EpisodeNum.value)){$app_EpisodeNum.value = $exEpisode}
+					if(IsNull($app_Season.value)){$app_Season.value = $exSeason}
 					#$app_SeasonID.value = $exSeason
 					
 					Write-Host "[EXTRAPOLATION] Done!" -ForegroundColor Green
@@ -1528,7 +1531,7 @@ Foreach ($line in $contents){
 					# match special case DateType
 					Write-Debug "[EXTRAPOLATION] OUT of Get-SeasonEpisode: Matched DATE TYPE."
 					# set EPISODE_NUMBER
-					$app_EpisodeNum.value = $exEpisode
+					if(IsNull($app_EpisodeNum.value)){$app_EpisodeNum.value = $exEpisode}
                     $e_message = "[EXTRAPOLATION] TYPE $($exTypeMatch) match found."
                     Write-Host $e_message -BackgroundColor DarkGray -ForegroundColor Green 
 		
@@ -1554,8 +1557,8 @@ Foreach ($line in $contents){
                     $e_message ="[EXTRAPOLATION] TYPE $($exTypeMatch) match found."
                     $llevel = "I"
 
-                   	$app_EpisodeNum.value = $exEpisode.ToString()
-					$app_Season.value = $exSeason.ToString()
+					if(IsNull($app_EpisodeNum.value)){$app_EpisodeNum.value = $exEpisode.ToString()}
+                   	if(IsNull($app_Season.value)){$app_Season.value = $exSeason.ToString()}
 					
 					Write-Host $e_message -BackgroundColor DarkGray -ForegroundColor Green
                     Write-Log $xml_filename $llevel $e_message
@@ -1568,8 +1571,8 @@ Foreach ($line in $contents){
 					$llevel = "I"
 					
 					#$app_EpisodeID.value = $exEpisode
-					$app_EpisodeNum.value = $exEpisode.ToString()
-					$app_Season.value = $exSeason.ToString()
+					if(IsNull($app_EpisodeNum.value)){$app_EpisodeNum.value = $exEpisode.ToString()}
+					if(IsNull($app_Season.value)){$app_Season.value = $exSeason.ToString()}
 					#$app_SeasonID.value = $exSeason
 					
 					Write-Host $e_message -BackgroundColor DarkGray -ForegroundColor Green
