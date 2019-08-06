@@ -680,7 +680,6 @@ function Format-SubProcessing {
 		
 	# Check for value and 'Sub_' ...
     if($xmlMetaObj -notlike "Sub_*"){
-		
 		# prepend Sub_ and return new string and log action
         $xmlMetaObj = "Sub_"+$xmlMetaObj.trim()
 		Write-Log $xml_filename "I" "[Format-SubProcessing] Processed and returning $($xmlMetaObj)"
@@ -1099,16 +1098,19 @@ Foreach ($line in $contents){
 		}
 		
 		# Format-SubProcessing() of Series_Name
+		# be sure IsSubscription is set before using Format-SubProcessing()
+		# if not, set error, log it and set for \Review\
 		if ($app_IsSubscription.value -eq "Y")
 		{
 			$e_message = "[SUB_ Processing - IsSubscription] Set to $($app_IsSubscription.value)"
 			Write-Debug($e_message)
 			Write-Log $xml_filename "I" $e_message
 			
-			# process Format-SubProcessing for Series_Name and set Series_ID.value to Series_Name.value
+			# process Format-SubProcessing for Series_Name and set Series_Name.value
 			if(!(IsNull($app_SeriesName.value))){
-				if(){
-				
+				# the function will log any false returns so no need to process that here.
+				if($strSeriesNameSub = Format-SubProcessing($app_SeriesName.value)){
+					$app_SeriesName.value = $strSeriesNameSub
 				}
 			} else {
 				# Series_Name is empty/null - thats a problem - set of \REVIEW\
@@ -1121,14 +1123,15 @@ Foreach ($line in $contents){
 			
 		} else {
 			# not a SUBSCRIPTION - log the error and set IsReview flag!
-			$e_message = "[SUB_ Processing - IsSubscription] Set to $($app_IsSubscription.value)."
+			$e_message = "[SUB_ Processing - IsSubscription] Set to $($app_IsSubscription.value). Setting for \REVIEW\"
 			Write-Host $e_message -ForegroundColor Red
 			Write-Log $xml_filename "E" "$($e_message)"
 			$numError++
 			$isReview = 1
 		}
 		
-		# SERIES_ID Node
+		# SERIES_ID Node check
+		# Set Series_ID value to Series_Name value regardless of current Series_ID value.
 		# if node does NOT exist build it and set to 'Series_Name' value.
 		if (!($app_SeriesID)){
 			$e_message = "[Series_Id] node is MISSING !! Building node..."
@@ -1145,12 +1148,12 @@ Foreach ($line in $contents){
 			Write-Log $xml_filename "w" " Finished building Series_Id node. Value is $($app_SeriesID.value)."
 			Write-Host ("[Series_Id] element built. Value set to 'Series_Name' value.") -ForegroundColor Green
 		
+		} else {
+			$e_message = "[Series_Id] is present. Setting value to Series_Name: $($app_SeriesName.value)"
+			Write-Debug $e_message
+			Write-Log $xml_filename "I" $e_message
+			$app_SeasonID.value = $app_SeriesName.value
 		}
-
-		if(!(IsNull($app_SeriesID.value))){
-			$app_SeriesID.Value = cleanUp($app_SeriesID.value)
-		}
-		
 
 		
 		# SEASON NODE
