@@ -677,17 +677,24 @@ function Format-SubProcessing {
     )
 
 	# log our actions
-	Write-Log $xml_filename "I" "[Format-SubProcessing] Rec'd $($xmlMetaObj)"
+    $e_message = "[Format-SubProcessing] Rec'd $($xmlMetaObj)"
+	Write-Log $xml_filename "I" $e_message
+    Write-Debug $e_message
 		
 	# Check for value and 'Sub_' ...
     if($xmlMetaObj -notlike "Sub_*"){
 		# prepend Sub_ and return new string and log action
         $xmlMetaObj = "Sub_"+$xmlMetaObj.trim()
-		Write-Log $xml_filename "I" "[Format-SubProcessing] Processed and returning $($xmlMetaObj)"
+
+        $e_message = "[Format-SubProcessing] Processed and returning $($xmlMetaObj)"
+        Write-Debug $e_message
+		Write-Log $xml_filename "I" $e_message
         return $xmlMetaObj
     } else {
 		# 'Sub_' was found so return false and log the action
-		Write-Log $xml_filename "W" "[Format-SubProcessing] 'Sub_' was found in string. Returning FALSE!"
+        $e_message = "[Format-SubProcessing] 'Sub_' was found in string. Returning FALSE!"
+        Write-Debug $e_message
+		Write-Log $xml_filename "W" $e_message
 		$global:numWarn++
         return $false
     }
@@ -1150,10 +1157,10 @@ Foreach ($line in $contents){
 			Write-Host ("[Series_Id] element built. Value set to 'Series_Name' value.") -ForegroundColor Green
 		
 		} else {
-			$e_message = "[Series_Id] is present. Setting value to Series_Name: $($app_SeriesName.value)"
+			$e_message = "[Series_Id] is present. Setting value to (from Series_Name): $($app_SeriesName.value)"
 			Write-Debug $e_message
 			Write-Log $xml_filename "I" $e_message
-			$app_SeasonID.value = $app_SeriesName.value
+			$app_SeriesID.value = $app_SeriesName.value
 		}
 
 		
@@ -1604,8 +1611,10 @@ Foreach ($line in $contents){
         # done processing and moving to next asset
 		if($msvFound -eq 1){
 			Write-Host("Processing complete.")
+            Write-Log $xml_filename "I" "Processing complete."
 		} else {
 			Write-Host("AssetID was not found in MSV!") -ForegroundColor Red
+            Write-Log $xml_filename "E" "AssetID was not found in MSV!"
 		}
 	    
 	}
