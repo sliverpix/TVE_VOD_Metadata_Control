@@ -1105,39 +1105,7 @@ Foreach ($line in $contents){
 
 		}
 		
-		# Format-SubProcessing() of Series_Name
-		# be sure IsSubscription is set before using Format-SubProcessing()
-		# if not, set error, log it and set for \Review\
-		if ($app_IsSubscription.value -eq "Y")
-		{
-			$e_message = "[SUB_ Processing - IsSubscription] Set to $($app_IsSubscription.value)"
-			Write-Debug($e_message)
-			Write-Log $xml_filename "I" $e_message
-			
-			# process Format-SubProcessing for Series_Name and set Series_Name.value
-			if(!(IsNull($app_SeriesName.value))){
-				# the function will log any false returns so no need to process that here.
-				if($strSeriesNameSub = Format-SubProcessing($app_SeriesName.value)){
-					$app_SeriesName.value = $strSeriesNameSub
-				}
-			} else {
-				# Series_Name is empty/null - thats a problem - set of \REVIEW\
-				$e_message = "[SUB_ Processing - IsNull] Series_Name vale is EMPTY/NULL!"
-				Write-Debug $e_message
-				Write-Log $xml_filename "E" $e_message
-				$numError++
-				$isReview = 1
-			}
-			
-		} else {
-			# not a SUBSCRIPTION - log the error and set IsReview flag!
-			$e_message = "[SUB_ Processing - IsSubscription] Set to $($app_IsSubscription.value). Setting for \REVIEW\"
-			Write-Host $e_message -ForegroundColor Red
-			Write-Log $xml_filename "E" "$($e_message)"
-			$numError++
-			$isReview = 1
-		}
-		
+				
 		# SERIES_ID Node check
 		# Set Series_ID value to Series_Name value regardless of current Series_ID value.
 		# if node does NOT exist build it and set to 'Series_Name' value.
@@ -1163,6 +1131,39 @@ Foreach ($line in $contents){
 			$app_SeriesID.value = $app_SeriesName.value
 		}
 
+		# Format-SubProcessing() of Series_Is
+		# be sure IsSubscription is set before using Format-SubProcessing()
+		# if not, set error, log it and set for \Review\
+		if ($app_IsSubscription.value -eq "Y")
+		{
+			$e_message = "[SUB_ Processing - IsSubscription] Set to $($app_IsSubscription.value)"
+			Write-Debug($e_message)
+			Write-Log $xml_filename "I" $e_message
+			
+			# process Format-SubProcessing for Series_Name and set Series_Name.value
+			if(!(IsNull($app_SeriesID.value))){
+				# the function will log any false returns so no need to process that here.
+				if($strSeriesIdSub = Format-SubProcessing($app_SeriesID.value)){
+					$app_SeriesID.value = $strSeriesIdSub
+				}
+			} else {
+				# Series_Id is empty/null - thats a problem - set of \REVIEW\
+				$e_message = "[SUB_ Processing - IsNull] Series_Id value is EMPTY/NULL!"
+				Write-Debug $e_message
+				Write-Log $xml_filename "E" $e_message
+				$numError++
+				$isReview = 1
+			}
+			
+		} else {
+			# not a SUBSCRIPTION - log the error and set IsReview flag!
+			$e_message = "[SUB_ Processing - IsSubscription] Set to $($app_IsSubscription.value). Setting for \REVIEW\"
+			Write-Host $e_message -ForegroundColor Red
+			Write-Log $xml_filename "E" "$($e_message)"
+			$numError++
+			$isReview = 1
+		}
+		
 		
 		# SEASON NODE
         if (!($app_Season)){
