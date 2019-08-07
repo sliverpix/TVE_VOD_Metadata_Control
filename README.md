@@ -141,4 +141,5 @@ __History:__:
 				- finish adding logic to Series_Name for Format-SubProcessing() logic
 				- cleanup/remove old Series_ID logic and set its value to Series_Name regardless of current SeriesID value.
 				- A-Path (byCategory) - Enhancement #26
+* 08-07-2019	- (1.12.1) Correct the application of Format-SubProcessing() to instead apply to Series_Id value rather than Series_Name value.
 
