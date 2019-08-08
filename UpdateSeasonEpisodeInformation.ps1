@@ -954,6 +954,9 @@ Foreach ($line in $contents){
 		$app_RatingMPAA = ($class_title.App_Data | Where-Object {$_.Name -eq "Rating_MPAA"})
 		Check-multiElement($app_RatingMPAA)	# check for multi-element nodes that SHOULD NOT be multi-element
 		
+		$app_Rating = ($class_title.App_Data | Where-Object {$_.Name -eq "Rating"})
+		Check-multiElement($app_Rating)	# check for multi-element nodes that SHOULD NOT be multi-element
+		
 		$app_SubscriptionType = ($class_title.App_Data | Where-Object {$_.Name -eq "Subscription_type"})
 		Check-multiElement($app_SubscriptionType)	# check for multi-element nodes that SHOULD NOT be multi-element
 		
@@ -1242,22 +1245,56 @@ Foreach ($line in $contents){
 			Write-Host ("Fixed. Check log.") -ForegroundColor Green
 		}
 		
+		# RATING node
+        if (!($app_Rating)){
+            # Rating node is missing ... log it and break!
+            $e_message = "[RATING] node is missing! Breaking out!"
+            $Script:numError++
+            Write-Log $xml_filename "e" "$($e_message)"
+            Write-Host ($e_message) -ForegroundColor Red
+			
+			# update our REVIEW counter 
+			# Break out of our code and move to next assetID in list.
+			$isReview = 1
+            Break;
+        } else {
+            Write-Log $xml_filename "i" "[RATING] node found."
+			Write-Debug("[RATING] node found.")
+
+            # does it have value
+            if (IsNull($app_Rating.Value)){
+                Write-Log $xml_filename "e" "[RATING] node value is empty or null. Setting for \REVIEW\"
+                $Script:numError++
+                Write-Host ("[RATING] node was empty or did not exist!") -ForegroundColor Red
+				$isReview = 1
+                Break;
+            }
+
+            # get the RATING value to test/use later
+            Write-Log $xml_filename "i" "[RATING] node has value of: $($app_Rating.Value)"
+            $valRating = $app_Rating.value
+			WRite-Debug("[RATING] VALRATING set: $($valRating)")
+        }
+		
+		
 		# Rating_MPAA NODE
 		if (!($app_RatingMPAA)){
-			$e_message = "Rating_MPAA Node is MISSING!! Checking for mispelled node..."
+			$e_message = "[Rating_MPAA] Node is MISSING!! Checking for mispelled node..."
 			$numWarn++
 			Write-Log $xml_filename "w" "$($e_message)"
 			Write-Host ($e_message) -ForegroundColor Yellow
 			
 			# check for mispelled noden name
+			# could SWITCH this to a wildcard search. Since we are only seeing a SINGLE instances
+			# of mispelling we will look for that.
 			$mispelledMPAA = $class_title.App_Data | Where-Object {$_.Name -eq "MPAA_Rating"}
 			if ($mispelledMPAA.NAME){
 				# mispelling found
-				Write-Log $xml_filename "w" "Found mispelled Node: $($mispelledMPAA.Name) with value: $($mispelledMPAA.value)"
-				Write-Debug "node name $($mispelledMPAA.Name) changed to..."
+				Write-Log $xml_filename "w" "[Rating_MPAA] Found mispelled Node: $($mispelledMPAA.Name) with value: $($mispelledMPAA.value)"
+				Write-Debug "[Rating_MPAA] node name $($mispelledMPAA.Name) changed to..."
 				$mispelledMPAA.Name = "Rating_MPAA"
-				Write-Debug "node name $($mispelledMPAA.Name)"
-				$e_message = "Changed element name 'MPAA_Rating' to '$($mispelledMPAA.NAME)'"
+				Write-Debug "[Rating_MPAA] node name $($mispelledMPAA.Name)"
+				$e_message = "[Rating_MPAA] Changed element name to '$($mispelledMPAA.NAME)'"
 				Write-Log $xml_filename "w" "$e_message"
 				
 			} else {
@@ -1268,7 +1305,7 @@ Foreach ($line in $contents){
 				$app_elem.SetAttribute("Value","")	
 				$app_RatingMPAA = $content.ADI.Asset.Metadata.AppendChild($app_elem)
 				
-				$e_message = "No mispelling found. Node Built. Fixed!"
+				$e_message = "[Rating_MPAA] No mispelling found. Node Built. Fixed!"
 				Write-Log $xml_filename "w" "$($e_message)"
 				Write-Host ($e_message) -ForegroundColor Green
 			}
@@ -1278,6 +1315,37 @@ Foreach ($line in $contents){
 		}
 				
 		#### NODE Check Stop #####
+		
+		
+		# Check Rating_MPAA against RATING and set Rating_MPAA to RATING
+		# they are not equal
+		if (IsNull($valRating)){
+            # something broke if this value is not set
+            Write-Log $xml_filename "e" "[Rating_MPAA Value Check] variable VALRATNG was not set. Something broke!"
+			Write-Host ("[Rating_MPAA Value Check] Rating value was not set. See $($logfile)") -ForegroundColor Red
+			$isReview=1
+			$numError++
+			
+			Break;			
+        } else {
+			# set Rating value to Rating_MPAA value
+			if ($app_MPAA.value -ne $app_Rating.value){
+                Write-Log $xml_filename "i" "[Rating_MPAA Value Check] Setting RATING_MPAA to $($valRating)"
+                $app_MPAA.value = $valRating
+                Write-Host ("[Rating_MPAA Value Check] set to $($app_MPAA.value)") -ForegroundColor Green
+
+				#save modified version -- this in the right place?
+				$numMod++
+                $numRatingChange++
+				$content.Save($modifiedD + "\" + $xml_filename)
+			} else {
+                # MPAA node and Rating node are set and equal
+                Write-Log $xml_filename "i" "[Rating_MPAA Value Check] RATING_MPAA and RATING are equal. No changes made."
+                Write-Host ("[Rating_MPAA Value Check] Rating Nodes are equal. Moving on.")
+
+            }
+		}
+		
 		
 		# check Series_Id
 		# case sensitive NAME check
