@@ -567,7 +567,7 @@ function Find_SeriesName{
 	}
 }
 
-# ## Get-SeasonEpisodebyProvider()
+# ## Get-SeasonEpisodebyProider()
 # a differnt way to get and set Season and Episode meta.
 # Using Category_Disply we will look for a match in our
 # Provider CSV. If a match is found, we will set the EPISODE_NAME
