@@ -666,8 +666,10 @@ function Check-multiElement {
 # SUB_ Processing()
 # take give STRING, trim whitespace and Prepend "SUB_"
 # Return this value after. IF there is already a "SUB_"
-# return false and log the WARNING. If used in conjunction with IsNull()
-# we should be able to catch any/all combinataions of empty/null values.
+# return false and log the WARNING. No processing if the Subscription_type is MSV_HBO.
+#
+# If used in conjunction with IsNull() we should be able to catch any/all combinataions
+# of empty/null values.
 function Format-SubProcessing {
     Param(
     [parameter(Mandatory=$true)]
@@ -681,23 +683,37 @@ function Format-SubProcessing {
 	Write-Log $xml_filename "I" $e_message
     Write-Debug $e_message
 		
-	# Check for value and 'SUB_' ...
-    if($xmlMetaObj -notlike "SUB_*"){
-		# prepend SUB_ and return new string and log action
-        $xmlMetaObj = "SUB_"+$xmlMetaObj.trim()
+		
+	# if its an HBO show, dont prepend "SUB_" to Series_Id value
+	Switch ($app_SubscriptionType.value)
+    {
+		"MSV_HBO"	{
+				$e_message = "[Format-SubProcessing] Found MSV_HBO for $($app_SubscriptionType.name)."
+				Write-Debug($e_message)
+				Write-Log $xml_filename "i" "$($e_message)"
+				Write-Log $xml_filename "I" "[Format-SubProcessing] no changes made. Returning false and exiting Format-SubProcessing function."
+				return $false
+		}
+		default		{
+				# Check for value and 'SUB_' ...
+				if($xmlMetaObj -notlike "SUB_*"){
+					# prepend SUB_ and return new string and log action
+					$xmlMetaObj = "SUB_"+$xmlMetaObj.trim()
 
-        $e_message = "[Format-SubProcessing] Processed and returning $($xmlMetaObj)"
-        Write-Debug $e_message
-		Write-Log $xml_filename "I" $e_message
-        return $xmlMetaObj
-    } else {
-		# 'SUB_' was found so return false and log the action
-        $e_message = "[Format-SubProcessing] 'SUB_' was found in string. Returning FALSE!"
-        Write-Debug $e_message
-		Write-Log $xml_filename "W" $e_message
-		$global:numWarn++
-        return $false
-    }
+					$e_message = "[Format-SubProcessing] Processed and returning $($xmlMetaObj)"
+					Write-Debug $e_message
+					Write-Log $xml_filename "I" $e_message
+					return $xmlMetaObj
+				} else {
+					# 'SUB_' was found so return false and log the action
+					$e_message = "[Format-SubProcessing] 'SUB_' was found in string. Returning FALSE!"
+					Write-Debug $e_message
+					Write-Log $xml_filename "W" $e_message
+					$global:numWarn++
+					return $false
+				}
+		}
+	}
 }
 
 ##############################################
