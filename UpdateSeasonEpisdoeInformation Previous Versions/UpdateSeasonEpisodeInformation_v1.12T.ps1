@@ -16,7 +16,7 @@
 #
 # Name:     updateSeasonEpisodeInformation.ps1
 # Authors:  James Griffith
-# Version:  1.12.1T
+# Version:  1.12T
 #
 ####################################################################
 #
@@ -354,15 +354,12 @@ function Write-Log {
 
 # check for all NULL types of a variable - the smoooth way - JAZZY!
 function IsNull($objectToCheck) {
-
 	# https://www.codykonior.com/2013/10/17/checking-for-null-in-powershell/
     if ($objectToCheck -eq $null) {
         return $true
     }
 
-    # add .Trim() to catch whitepspace that might be otherwise missed as non-empty
-	# James G
-    if ($objectToCheck -is [String] -and $objectToCheck.trim() -eq [String]::Empty) {
+    if ($objectToCheck -is [String] -and $objectToCheck -eq [String]::Empty) {
         return $true
     }
 
@@ -382,7 +379,7 @@ function cleanUp($dirtyString, [switch]$isSeries){
 	
 	Write-Debug("[cleanUp] cleanUp rec'd $($dirtyString)")
 	
-	# cleanup any title or string we receive. removes as many varians of "HD" as we know of
+	# cleanup an title or string we receive. removes as many varians of "HD" as we know of
 	# also changes all "_" to spaces to correct title/series names we are receiving with
 	# underscores for spaces. Finally remove any whitespace from beginning/end of our string
 	$dirtyString = $dirtyString.toString()
@@ -663,58 +660,7 @@ function Check-multiElement {
 	
 }
 
-# SUB_ Processing()
-# take give STRING, trim whitespace and Prepend "SUB_"
-# Return this value after. IF there is already a "SUB_"
-# return false and log the WARNING. No processing if the Subscription_type is MSV_HBO.
-#
-# If used in conjunction with IsNull() we should be able to catch any/all combinataions
-# of empty/null values.
-function Format-SubProcessing {
-    Param(
-    [parameter(Mandatory=$true)]
-    [ValidateNotNullOrEmpty()]
-	[String]
-    $xmlMetaObj
-    )
 
-	# log our actions
-    $e_message = "[Format-SubProcessing] Rec'd $($xmlMetaObj)"
-	Write-Log $xml_filename "I" $e_message
-    Write-Debug $e_message
-		
-		
-	# if its an HBO show, dont prepend "SUB_" to Series_Id value
-	Switch ($app_SubscriptionType.value)
-    {
-		"MSV_HBO"	{
-				$e_message = "[Format-SubProcessing] Found MSV_HBO for $($app_SubscriptionType.name)."
-				Write-Debug($e_message)
-				Write-Log $xml_filename "i" "$($e_message)"
-				Write-Log $xml_filename "I" "[Format-SubProcessing] no changes made. Returning false and exiting Format-SubProcessing function."
-				return $false
-		}
-		default		{
-				# Check for value and 'SUB_' ...
-				if($xmlMetaObj -notlike "SUB_*"){
-					# prepend SUB_ and return new string and log action
-					$xmlMetaObj = "SUB_"+$xmlMetaObj.trim()
-
-					$e_message = "[Format-SubProcessing] Processed and returning $($xmlMetaObj)"
-					Write-Debug $e_message
-					Write-Log $xml_filename "I" $e_message
-					return $xmlMetaObj
-				} else {
-					# 'SUB_' was found so return false and log the action
-					$e_message = "[Format-SubProcessing] 'SUB_' was found in string. Returning FALSE!"
-					Write-Debug $e_message
-					Write-Log $xml_filename "W" $e_message
-					$global:numWarn++
-					return $false
-				}
-		}
-	}
-}
 
 ##############################################
 ### check and create direcotries and files ###
@@ -770,6 +716,28 @@ if (!(Test-Path -Path $provDict -PathType leaf)){
 ##########################################
 # ##### 	USER INPUT QUERRIES 	#### #
 ##########################################
+
+# will be using SUB_ processing?
+$vSubInput = Read-Host -Prompt "Process for SUB_ pre-pending? [Y/N]"
+$vSubProcessing = 0	# check this switch later for SUB_ processing 0/1 = N/Y
+
+switch ($vSubInput){
+    "Y" {   $vSubProcessing = 1
+            Write-Debug("SUB_ Processing ACTIVE!")
+			write-log $xml_filename "I" "SUB_ processing selected and flag set $($vSubProcessing)"
+            Break;
+	}
+    "N" {   $vSubProcessing = 0
+            Write-Host "SUB_ will not be processed." -ForegroundColor Gray
+			Write-Log $xml_filename "I" "SUB_ processing NOT selected and flag set $($vSubProcessing)"
+            Break;
+	}
+    Default {
+		Write-Host "Wrong input. EXITING..." -ForegroundColor Red
+		Exit;
+	}
+}
+
 
 # This will decide which functions to run to get our season and episode data
 Write-Host ""
@@ -1121,10 +1089,8 @@ Foreach ($line in $contents){
 
 		}
 		
-				
-		# SERIES_ID Node check
-		# Set Series_ID value to Series_Name value regardless of current Series_ID value.
-		# if node does NOT exist build it and set to 'Series_Name' value.
+		# SERIES_ID Node
+		# if node does NOT exist build it and set an empty value
 		if (!($app_SeriesID)){
 			$e_message = "[Series_Id] node is MISSING !! Building node..."
 			$numWarn++
@@ -1137,49 +1103,16 @@ Foreach ($line in $contents){
 			$app_elem.SetAttribute("Name","Series_Id")
 			$app_elem.SetAttribute("Value",$app_SeriesName.Value)	
 			$app_SeriesID = $content.ADI.Asset.Metadata.AppendChild($app_elem)
-			Write-Log $xml_filename "w" " Finished building Series_Id node. Value is $($app_SeriesID.value)."
-			Write-Host ("[Series_Id] element built. Value set to 'Series_Name' value.") -ForegroundColor Green
+			Write-Log $xml_filename "w" " Finished building Series_Id node. It is empty currently."
+			Write-Host ("[Series_Id] element built. Value is currently EMPTY.") -ForegroundColor Green
 		
-		} else {
-			$e_message = "[Series_Id] is present. Setting value to (from Series_Name): $($app_SeriesName.value)"
-			Write-Debug $e_message
-			Write-Log $xml_filename "I" $e_message
-			$app_SeriesID.value = $app_SeriesName.value
 		}
 
-		# Format-SubProcessing() of Series_Is
-		# be sure IsSubscription is set before using Format-SubProcessing()
-		# if not, set error, log it and set for \Review\
-		if ($app_IsSubscription.value -eq "Y")
-		{
-			$e_message = "[SUB_ Processing - IsSubscription] Set to $($app_IsSubscription.value)"
-			Write-Debug($e_message)
-			Write-Log $xml_filename "I" $e_message
-			
-			# process Format-SubProcessing for Series_Name and set Series_Name.value
-			if(!(IsNull($app_SeriesID.value))){
-				# the function will log any false returns so no need to process that here.
-				if($strSeriesIdSub = Format-SubProcessing($app_SeriesID.value)){
-					$app_SeriesID.value = $strSeriesIdSub
-				}
-			} else {
-				# Series_Id is empty/null - thats a problem - set of \REVIEW\
-				$e_message = "[SUB_ Processing - IsNull] Series_Id value is EMPTY/NULL!"
-				Write-Debug $e_message
-				Write-Log $xml_filename "E" $e_message
-				$numError++
-				$isReview = 1
-			}
-			
-		} else {
-			# not a SUBSCRIPTION - log the error and set IsReview flag!
-			$e_message = "[SUB_ Processing - IsSubscription] Set to $($app_IsSubscription.value). Setting for \REVIEW\"
-			Write-Host $e_message -ForegroundColor Red
-			Write-Log $xml_filename "E" "$($e_message)"
-			$numError++
-			$isReview = 1
+		if(!(IsNull($app_SeriesID.value))){
+			$app_SeriesID.Value = cleanUp($app_SeriesID.value)
 		}
 		
+
 		
 		# SEASON NODE
         if (!($app_Season)){
@@ -1309,6 +1242,67 @@ Foreach ($line in $contents){
         }
 
 
+		# ### SUB_ processing ### #
+		if($vSubProcessing -eq 1){
+			$e_message = "[SUB_ Processing] switch set ... processing started"
+			Write-Debug($e_message)
+			Write-Log $xml_filename "I" $e_message
+			
+			# check & set value of Series_Id
+			if ($app_IsSubscription.value -eq "Y")
+			{
+				Write-Debug("[Series_Id & Episode_Id] IsSubscription set to $($app_IsSubscription.value).")
+				# if its an HBO show, dont prepend "SUB_" to Series_Id value
+				Switch ($app_SubscriptionType.value)
+				{
+					"MSV_HBO"	{
+									$e_message = "[Series_Id] Found MSV_HBO for $($app_SubscriptionType.name)"
+									Write-Debug($e_message)
+									Write-Log $xml_filename "i" "$($e_message)"
+									
+									if(isNull($app_SeriesID.value)) {
+										$e_message = "[Series_Id] is EMPTY. Setting value to $($app_SeriesName.value)"
+										Write-Debug($e_message)
+										Write-Log $xml_filename "w" "$($e_message)"
+										$numWarn++
+										$app_SeriesID.value = $app_SeriesName.value
+									}
+									Break;
+					}
+					default		{
+									$e_message = "[Series_Id] Found $($app_SubscriptionType.value) for $($app_SubscriptionType.name)"
+									Write-Debug($e_message)
+									Write-Log $xml_filename "i" "$($e_message)"
+									
+									if(isNull($app_SeriesID.value)) {
+										$e_message = "[Series_Id] is EMPTY. Setting value to SUB_$($app_SeriesName.value)"
+										$app_SeriesID.value = "SUB_" + $app_SeriesName.value
+									} else {
+										$e_message = "[Series_Id] Setting value to SUB_$($app_SeriesID.value)"
+										$app_SeriesID.value = "SUB_" + $app_SeriesID.value
+									}
+									
+									Write-Debug($e_message)
+									Write-Log $xml_filename "w" "$($e_message)"
+									$numWarn++
+					}
+				}
+			
+			} else {
+				$e_message = "[Series_Id & Episode_Id] IsSubscription set to $($app_IsSubscription.value)."
+				Write-Debug($e_message)
+				Write-Log $xml_filename "W" "$($e_message)"
+				$numWarn++
+			}
+		} else {
+			# SUB_ Processing Declined
+			$e_message = "[SUB_ Processing] switch unset ... processing DECLINED"
+			Write-Debug($e_message)
+			Write-Log $xml_filename "I" $e_message
+		}
+
+		
+		
 		# check Title_brief element. If empty/missing/not set.. check the Episode_Name element...
 		# if neither has value/str... then its messed up, so BREAK OUT
 		Write-Debug ("[TITLE_BRIEF node] checking Title_Brief...")
@@ -1453,14 +1447,12 @@ Foreach ($line in $contents){
 						write-log $xml_filename "w" "$($e_message)"
 						$script:numWarn++
 						write-debug("[EXTRAPOLATION] Checking EPISODE_NAME node ...")
-						
 						if(!($se_array = Get-SeasonEpisode($app_EpisodeName.Value))){
 							$e_message = "[EXTRAPOLATION] Get-SeasonEpisode returned false on EPISODE_NAME string: $($app_EpisodeName.Value)"
 							write-debug($e_message)
 							write-log $xml_filename "w" "$($e_message)"
 							$script:numWarn++
 							write-debug("[EXTRAPOLATION] checking TITLE node ...")
-							
 							if(!($se_array = Get-SeasonEpisode($app_Title.value))){
 								$e_message = "[EXTRAPOLATION] Get-SeasonEpisode returned false on TITLE string: $($app_Title.value)"
 								write-debug($e_message)
@@ -1531,8 +1523,8 @@ Foreach ($line in $contents){
 					$llevel = "W"
 
 					#$app_EpisodeID.value = $exEpisode
-					if(IsNull($app_EpisodeNum.value)){$app_EpisodeNum.value = $exEpisode}
-					if(IsNull($app_Season.value)){$app_Season.value = $exSeason}
+					$app_EpisodeNum.value = $exEpisode
+					$app_Season.value = $exSeason
 					#$app_SeasonID.value = $exSeason
 					
 					Write-Host "[EXTRAPOLATION] Done!" -ForegroundColor Green
@@ -1544,8 +1536,8 @@ Foreach ($line in $contents){
 					$llevel = "W"
 					
 					#$app_EpisodeID.value = $exEpisode
-					if(IsNull($app_EpisodeNum.value)){$app_EpisodeNum.value = $exEpisode}
-					if(IsNull($app_Season.value)){$app_Season.value = $exSeason}
+					$app_EpisodeNum.value = $exEpisode
+					$app_Season.value = $exSeason
 					#$app_SeasonID.value = $exSeason
 					
 					Write-Host "[EXTRAPOLATION] Done!" -ForegroundColor Green
@@ -1555,7 +1547,7 @@ Foreach ($line in $contents){
 					# match special case DateType
 					Write-Debug "[EXTRAPOLATION] OUT of Get-SeasonEpisode: Matched DATE TYPE."
 					# set EPISODE_NUMBER
-					if(IsNull($app_EpisodeNum.value)){$app_EpisodeNum.value = $exEpisode}
+					$app_EpisodeNum.value = $exEpisode
                     $e_message = "[EXTRAPOLATION] TYPE $($exTypeMatch) match found."
                     Write-Host $e_message -BackgroundColor DarkGray -ForegroundColor Green 
 		
@@ -1581,8 +1573,8 @@ Foreach ($line in $contents){
                     $e_message ="[EXTRAPOLATION] TYPE $($exTypeMatch) match found."
                     $llevel = "I"
 
-					if(IsNull($app_EpisodeNum.value)){$app_EpisodeNum.value = $exEpisode.ToString()}
-                   	if(IsNull($app_Season.value)){$app_Season.value = $exSeason.ToString()}
+                   	$app_EpisodeNum.value = $exEpisode.ToString()
+					$app_Season.value = $exSeason.ToString()
 					
 					Write-Host $e_message -BackgroundColor DarkGray -ForegroundColor Green
                     Write-Log $xml_filename $llevel $e_message
@@ -1595,8 +1587,8 @@ Foreach ($line in $contents){
 					$llevel = "I"
 					
 					#$app_EpisodeID.value = $exEpisode
-					if(IsNull($app_EpisodeNum.value)){$app_EpisodeNum.value = $exEpisode.ToString()}
-					if(IsNull($app_Season.value)){$app_Season.value = $exSeason.ToString()}
+					$app_EpisodeNum.value = $exEpisode.ToString()
+					$app_Season.value = $exSeason.ToString()
 					#$app_SeasonID.value = $exSeason
 					
 					Write-Host $e_message -BackgroundColor DarkGray -ForegroundColor Green
@@ -1628,10 +1620,8 @@ Foreach ($line in $contents){
         # done processing and moving to next asset
 		if($msvFound -eq 1){
 			Write-Host("Processing complete.")
-            Write-Log $xml_filename "I" "Processing complete."
 		} else {
 			Write-Host("AssetID was not found in MSV!") -ForegroundColor Red
-            Write-Log $xml_filename "E" "AssetID was not found in MSV!"
 		}
 	    
 	}
