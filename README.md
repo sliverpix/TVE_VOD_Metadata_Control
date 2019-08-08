@@ -142,4 +142,9 @@ __History:__:
 				- cleanup/remove old Series_ID logic and set its value to Series_Name regardless of current SeriesID value.
 				- A-Path (byCategory) - Enhancement #26
 * 08-07-2019	- (1.12.1) Correct the application of Format-SubProcessing() to instead apply to Series_Id value rather than Series_Name value.
+* 08-08-2019	- (1.12.2) MPAA_Rating & Rating Node Checks added.
+				- add logic to check for most common (and only type we know of ) mis-spelling of the MPAA_Rating.name attribute (note: could open this up to a wildcard search if we start seeing more than this one example)
+				- add logic to compare Rating node value to the MPAA_Rating.value and adjust if not the same.
+
+
 
