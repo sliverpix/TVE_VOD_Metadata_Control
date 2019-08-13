@@ -730,6 +730,7 @@ function Format-SubProcessing {
 ##############################################
 ### check and create direcotries and files ###
 ##############################################
+
 if(!(Test-Path -Path $work_dir)){
     Write-Debug ("cant find working directory .. creating..")
 	New-Item -Path $work_dir -ItemType Directory
