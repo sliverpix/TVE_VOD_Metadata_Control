@@ -50,8 +50,8 @@ __Description__:
 
  Authors: | James Griffith
  -------- | ---------------
- __Version:__ | __1.12.2__
- 
+ __Version:__ | __1.12.3__
+
  This script downloads / pulls ADI files out of the DB for correction to SEASON and Season_ID, EPISODE_NUM and EPISODE_ID, Checks for necessary  element nodes in the metadata and creates/changes values to those elements/nodes.. ONLY HLS title types are checked. If the element/nodes are not present in the original XML we will build them and populate them. XML files are saved to ORIGINAL and MODIFIED folders to maintain the integrity of our library. We target HLS formats in both HD and SD and set values based on TITLE or Title_Brief value. If these dont exist we break out, log it and and notify the user.
 
  Logging function has been added to help track processing, error,
@@ -145,6 +145,6 @@ __History:__:
 * 08-08-2019	- (1.12.2) MPAA_Rating & Rating Node Checks added.
 				- add logic to check for most common (and only type we know of ) mis-spelling of the MPAA_Rating.name attribute (note: could open this up to a wildcard search if we start seeing more than this one example)
 				- add logic to compare Rating node value to the MPAA_Rating.value and adjust if not the same.
-
-
-
+* 08-14-2019	- (1.12.3) Fix Bug #33 to save meta changes to either MODIFIED or to REVIEW but not both. (not watch SD/HD as an asset could have both and they could be saved to differnt locations.)
+				- start building new functions to address enhancement #34 & #37 (see the project board/issue tracker for details.)
+				- Tested and polished code cerrections for bugs #22, #33 and #36 (see the project board/issue tracker for details.)

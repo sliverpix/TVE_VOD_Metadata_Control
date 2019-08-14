@@ -567,7 +567,7 @@ function Find_SeriesName{
 	}
 }
 
-# ## Get-SeasonEpisodebyProvider()
+# ## Get-SeasonEpisodebyProider()
 # a differnt way to get and set Season and Episode meta.
 # Using Category_Disply we will look for a match in our
 # Provider CSV. If a match is found, we will set the EPISODE_NAME
@@ -643,12 +643,12 @@ function Get-SeasonEpisodebyProvider{
 # check supplied XML from out meta for more than ONE element. Most META elements only need one,
 # but some will always have more than one like "GENRE" or "CATEGORY". We do not need to check 
 # these, but the rest we do. IF we find an improperly formed meta, set it for REVIEW and log it.
-# Return the number of elements found to be used in logic checks.
 function Check-multiElement {
 	Param(
 	[parameter(Mandatory=$true)]
 	[AllowNull()]
 	[AllowEmptyString()]
+	#[String]
 	$xmlElement	
 	)
 	
@@ -661,15 +661,14 @@ function Check-multiElement {
 		Write-Debug $e_message
 	}
 	
-	return $xmlElement.Count
 }
 
 # SUB_ Processing()
-# take give STRING, trim whitespace and Prepends "SUB_"
+# take give STRING, trim whitespace and Prepend "SUB_"
 # Return this value after. IF there is already a "SUB_"
 # return false and log the WARNING. No processing if the Subscription_type is MSV_HBO.
 #
-# If used in conjunction with IsNull() we should be able to catch any/all combinations
+# If used in conjunction with IsNull() we should be able to catch any/all combinataions
 # of empty/null values.
 function Format-SubProcessing {
     Param(
@@ -718,31 +717,14 @@ function Format-SubProcessing {
 }
 
 
+
 # Remove-TVEXMLNode()
-# Used to remove VOD XML nodes from the TVE meta. the Provided XML node
-# is used by "NAME" to find all nodes and remove those nodes from the meta.
-# return FALSE if no nodes where found/removed. Log all actions taken.
-Remove-TVEXMLNode {
-	Param(
-    [parameter(Mandatory=$true)]
-    [ValidateNotNullOrEmpty()]
-    $xmlMetaObj
-    )
-	
-	# find all nodes provided.
-}
+# Used to remove VOD XML nodes from the TVE meta provided
+# target the nodes by NAME attribute and loop through them
+# using 
 
 # Add-TVEXMLNode()
-# Used to create a missing NODE in the META at the end of the <asset> node
-# a NAME string must be supplied. VALUE string is optional but attribute will be 
-# built anyway so it can be set when necessary
-Add-TVEXMLNode {
-	Param(
-    [parameter(Mandatory=$true)]
-    [ValidateNotNullOrEmpty()]
-    $xmlMetaName
-    )
-}
+
 
 
 ##############################################
@@ -797,6 +779,8 @@ if (!(Test-Path -Path $provDict -PathType leaf)){
 	# set or Provider array
 	$providerDict = Import-Csv $provDict -Delimiter ":"
 }
+
+
 
 ##########################################
 # ##### 	USER INPUT QUERRIES 	#### #
@@ -1360,10 +1344,10 @@ Foreach ($line in $contents){
 			Break;			
         } else {
 			# set Rating value to Rating_MPAA value
-			if ($app_RatingMPAA.value -ne $app_Rating.value){
+			if ($app_MPAA.value -ne $app_Rating.value){
                 Write-Log $xml_filename "i" "[Rating_MPAA Value Check] Setting RATING_MPAA to $($valRating)"
-                $app_RatingMPAA.value = $valRating
-                Write-Host ("[Rating_MPAA Value Check] set to $($app_RatingMPAA.value)") -ForegroundColor Green
+                $app_MPAA.value = $valRating
+                Write-Host ("[Rating_MPAA Value Check] set to $($app_MPAA.value)") -ForegroundColor Green
 
 				#save modified version -- this in the right place?
 				$numMod++
@@ -1622,6 +1606,7 @@ Foreach ($line in $contents){
 		# -- TYPE_UPDATE --
 		
 		# re-wrote with case logic instead of if-elseif-else
+		if($isReview -eq 0){
 			switch ($exTypeMatch){
 				"6" {
 					#dont update WARN counters
@@ -1707,35 +1692,29 @@ Foreach ($line in $contents){
 			Write-Log $xml_filename $llevel "[EXTRAPOLATION] SEASON String we matched: $($exSeason)"
 			Write-Log $xml_filename $llevel "[EXTRAPOLATION] EPISODE String we matched: $($exEpisode)"
 			
+			# match or set season and episode numbers
 			Write-Debug ("[EXTRAPOLATION] SEASON is $($app_Season.value)")
 			Write-Debug ("[EXTRAPOLATION] EPISODE is $($app_EpisodeNum.value)")
-	
-		if($msvFound -eq 1){
-			#asset was found in MSV
 			
-			if($isReview -eq 0){	
-				# No issues found for REVIEW so save MODIFIED
-				$numMod++
-				Write-Debug("[MODIFIED] Saving changed meta to \MODIFIED\")
-				write-log $xml_filename "I" "[MODIFIED] Saving changed meta to \MODIFIED\ directory."
-				$content.Save($modifiedD + "\" + $xml_filename)
-			} else {
-				# An Issue was found so save to REVIEW for investigation
-				Write-Debug("[REVIEW] The isReview Flag is SET! Saving changes to \REVIEW\")
-				$content.Save($reviewD + "\" + $xml_filename)
-				$numRev++
-				Write-Log $xml_filename "E" "[REVIEW] isReview was set. Saving meta to \Review\ directory!"
-			}
 			
-			# done processing and moving to next asset
-			Write-Host("Processing complete.")
-			Write-Log $xml_filename "I" "Processing complete."
-			
+			#save modified version -- this in the right place?
+			$numMod++
+			$content.Save($modifiedD + "\" + $xml_filename)
 		} else {
-			# AssetID was not found in MSV
-			
+			Write-Debug("[REVIEW] The isReview Flag is SET! did something break?")
+            $content.Save($reviewD + "\" + $xml_filename)
+            $numRev++
+            Write-Log $xml_filename "E" "[REVIEW] isReview was set. Saving meta to \Review\ directory!"
+
+		}
+	    
+        # done processing and moving to next asset
+		if($msvFound -eq 1){
+			Write-Host("Processing complete.")
+            Write-Log $xml_filename "I" "Processing complete."
+		} else {
 			Write-Host("AssetID was not found in MSV!") -ForegroundColor Red
-			Write-Log $xml_filename "E" "AssetID was not found in MSV!"
+            Write-Log $xml_filename "E" "AssetID was not found in MSV!"
 		}
 	    
 	}
