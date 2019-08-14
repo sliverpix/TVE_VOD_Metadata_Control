@@ -16,7 +16,7 @@
 #
 # Name:     updateSeasonEpisodeInformation.ps1
 # Authors:  James Griffith
-# Version:  1.12.2T
+# Version:  1.12.3T
 #
 ####################################################################
 #
@@ -733,7 +733,16 @@ Remove-TVEXMLNode {
 }
 
 # Add-TVEXMLNode()
-
+# Used to create a missing NODE in the META at the end of the <asset> node
+# a NAME string must be supplied. VALUE string is optional but attribute will be 
+# built anyway so it can be set when necessary
+Add-TVEXMLNode {
+	Param(
+    [parameter(Mandatory=$true)]
+    [ValidateNotNullOrEmpty()]
+    $xmlMetaName
+    )
+}
 
 
 ##############################################
