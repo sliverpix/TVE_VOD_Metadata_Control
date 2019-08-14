@@ -1329,10 +1329,10 @@ Foreach ($line in $contents){
 			Break;			
         } else {
 			# set Rating value to Rating_MPAA value
-			if ($app_MPAA.value -ne $app_Rating.value){
+			if ($app_RatingMPAA.value -ne $app_Rating.value){
                 Write-Log $xml_filename "i" "[Rating_MPAA Value Check] Setting RATING_MPAA to $($valRating)"
-                $app_MPAA.value = $valRating
-                Write-Host ("[Rating_MPAA Value Check] set to $($app_MPAA.value)") -ForegroundColor Green
+                $app_RatingMPAA.value = $valRating
+                Write-Host ("[Rating_MPAA Value Check] set to $($app_RatingMPAA.value)") -ForegroundColor Green
 
 				#save modified version -- this in the right place?
 				$numMod++
