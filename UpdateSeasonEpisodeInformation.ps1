@@ -722,7 +722,7 @@ function Format-SubProcessing {
 # Used to remove VOD XML nodes from the TVE meta. the Provided XML node
 # is used by "NAME" to find all nodes and remove those nodes from the meta.
 # return FALSE if no nodes where found/removed. Log all actions taken.
-Remove-TVEXMLNode {
+function Remove-TVEXMLNode {
 	Param(
     [parameter(Mandatory=$true)]
     [ValidateNotNullOrEmpty()]
@@ -736,7 +736,7 @@ Remove-TVEXMLNode {
 # Used to create a missing NODE in the META at the end of the <asset> node
 # a NAME string must be supplied. VALUE string is optional but attribute will be 
 # built anyway so it can be set when necessary
-Add-TVEXMLNode {
+function Add-TVEXMLNode {
 	Param(
     [parameter(Mandatory=$true)]
     [ValidateNotNullOrEmpty()]
