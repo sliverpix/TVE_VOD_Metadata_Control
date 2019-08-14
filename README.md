@@ -127,24 +127,24 @@ __History:__:
 * 06-25-2019	- (1.10.3.1) remove "BREAK" statement that was causing the script to stop processing the asset ID list -IF- there was no return from our query. By removing this statement, we allow the second ForEach loop to check and process any return(s) in the dataset. Due to the nature of the loop, if there is no data returned, then the loop does not execute and control is returned to the first ForEach and it cycles to the next asset ID number in the lsit. No change made to the version number as only a single word statement is removed.
 * 07-11-2019	- (1.10.6) Add cleanUp() to SERIES ID and logic to set SeiriesID.value to seriesName.value in some cases.
 * 07-19-2019	- (1.11T) Uncomment SUB_ processing in code and add user input. User can choose to turn on SUB_ processing. (may remove in the future but for now its a choice)
-		* Include REALITY check code. Currently commented out, and needs more testing.
+	* Include REALITY check code. Currently commented out, and needs more testing.
 * 08-02-2019	- (1.12) Fix bug #23 Multi-Element causing errors: built out new function Check-MultiElement() to look for duplication in some meta XML elements, log them, and set the file for \REVIEW\
 * 08-06-2019	- (1.12.1) Set "Series ID" with "Series Name" value and Sub_processing. basically process series name and prepend “Sub_” (with logic to avoid setting double “sub_” or setting on an empty value) and then set that value to series ID. 
-		* Remove Sub_ Processing user input logic
-		* move/change logic to Format_SubProcessing() under the Series_Name node check.
-		* fix BUG #22: Double-Sub_ in Episode Name
-		* add .Trim() to IsNull
-		* add function Format-SubProcessing()
-		* remove user input for Sub_ processing
-		* remove previous Sub_ processing logic.
-		* address's enhancement/bug #26
-		* finish adding logic to Series_Name for Format-SubProcessing() logic
-		* cleanup/remove old Series_ID logic and set its value to Series_Name regardless of current SeriesID value.
-		* A-Path (byCategory) - Enhancement #26
+	* Remove Sub_ Processing user input logic
+	* move/change logic to Format_SubProcessing() under the Series_Name node check.
+	* fix BUG #22: Double-Sub_ in Episode Name
+	* add .Trim() to IsNull
+	* add function Format-SubProcessing()
+	* remove user input for Sub_ processing
+	* remove previous Sub_ processing logic.
+	* address's enhancement/bug #26
+	* finish adding logic to Series_Name for Format-SubProcessing() logic
+	* cleanup/remove old Series_ID logic and set its value to Series_Name regardless of current SeriesID value.
+	* A-Path (byCategory) - Enhancement #26
 * 08-07-2019	- (1.12.1) Correct the application of Format-SubProcessing() to instead apply to Series_Id value rather than Series_Name value.
 * 08-08-2019	- (1.12.2) MPAA_Rating & Rating Node Checks added.
-		* add logic to check for most common (and only type we know of ) mis-spelling of the MPAA_Rating.name attribute (note: could open this up to a wildcard search if we start seeing more than this one example)
-		* add logic to compare Rating node value to the MPAA_Rating.value and adjust if not the same.
+	* add logic to check for most common (and only type we know of ) mis-spelling of the MPAA_Rating.name attribute (note: could open this up to a wildcard search if we start seeing more than this one example)
+	* add logic to compare Rating node value to the MPAA_Rating.value and adjust if not the same.
 * 08-14-2019	- (1.12.3) Fix Bug #33 to save meta changes to either MODIFIED or to REVIEW but not both. (not watch SD/HD as an asset could have both and they could be saved to differnt locations.)
-		* start building new functions to address enhancement #34 & #37 (see the project board/issue tracker for details.)
-		* Tested and polished code cerrections for bugs #22, #33 and #36 (see the project board/issue tracker for details.)
+	* start building new functions to address enhancement #34 & #37 (see the project board/issue tracker for details.)
+	* Tested and polished code cerrections for bugs #22, #33 and #36 (see the project board/issue tracker for details.)
