@@ -716,8 +716,20 @@ function Format-SubProcessing {
 	}
 }
 
+
+# Remove-TVEXMLNode()
+# Used to remove VOD XML nodes from the TVE meta provided
+# target the nodes by NAME attribute and loop through them
+# using 
+
+# Add-TVEXMLNode()
+
+
+
 ##############################################
 ### check and create direcotries and files ###
+##############################################
+
 if(!(Test-Path -Path $work_dir)){
     Write-Debug ("cant find working directory .. creating..")
 	New-Item -Path $work_dir -ItemType Directory
