@@ -1,5 +1,6 @@
+# Project is defunct and here for reference only.
+
 # TVE_VOD_Metadata_Control
-Project is defunct and her for reference only.
 Version control for TVE's VOD ingestion Metadata and related libraries.
 
 
